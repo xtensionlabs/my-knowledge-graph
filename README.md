@@ -19,7 +19,7 @@ uv run synapse start          # boot gateway + telegram bot
 
 | Milestone | State |
 |---|---|
-| M0 Foundation (capture) | in progress |
+| M0 Foundation (capture) | completed |
 | M1 The Graph Lives | pending |
 | M2 Daily Ritual | pending |
 | M3 Startup Mirror | pending |
