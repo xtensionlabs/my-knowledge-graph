@@ -1,0 +1,68 @@
+[project]
+name = "synapse"
+version = "0.1.0"
+description = "Synapse — personal cognitive operating system"
+readme = "README.md"
+requires-python = ">=3.12"
+authors = [{ name = "Wint3rX", email = "brianterer454@gmail.com" }]
+license = { text = "Proprietary" }
+
+dependencies = [
+  # Core
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.32.0",
+  "sqlmodel>=0.0.22",
+  "pydantic>=2.9.0",
+  "pydantic-settings>=2.6.0",
+  "python-multipart>=0.0.12",
+  # Logging + CLI
+  "loguru>=0.7.2",
+  "typer>=0.13.0",
+  "rich>=13.9.0",
+  # Capture
+  "python-telegram-bot>=21.6",
+  "pyperclip>=1.9.0",
+  "mail-parser>=4.1.0",
+  # Crypto (locked by CLAUDE.md — used in M1+ for credentials)
+  "cryptography>=43.0.0",
+  # Scheduler (locked — used in M2+ for agent schedules)
+  "apscheduler>=3.10.4",
+  # HTTP
+  "httpx>=0.27.2",
+  # Misc
+  "python-dotenv>=1.0.1",
+  "pyyaml>=6.0.2",
+  "anthropic>=0.104.1",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0",
+  "pytest-asyncio>=0.24.0",
+  "pytest-cov>=5.0.0",
+  "ruff>=0.7.0",
+  "mypy>=1.13.0",
+]
+
+[project.scripts]
+synapse = "synapse.cli.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["synapse"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "ASYNC", "S", "A", "C4", "PIE", "RET", "SIM"]
+ignore = ["S101", "S603", "S607"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --strict-markers"

@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(uv --version)",
+      "Bash(uv sync *)",
+      "Bash(uv run *)",
+      "Bash([ -d \"synapse/$dir\" ])",
+      "Bash(rm -rf synapse/__TRACKED_VAR__)",
+      "Bash(netstat -ano)",
+      "Bash(rm -f vault/inbox/*.md)",
+      "Bash(rm -f vault/.synapse/synapse.db)",
+      "Bash(curl -sf http://127.0.0.1:8000/health)",
+      "Bash(break)",
+      "Bash(curl -s http://127.0.0.1:8000/health)",
+      "PowerShell(Get-NetTCPConnection *)"
+    ]
+  }
+}
