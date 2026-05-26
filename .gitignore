@@ -66,10 +66,12 @@ coverage.xml
 *.log
 logs/
 
-# Synapse runtime data — never commit captured user data
-SYNAPSE/
-vault/
-synapse_vault/
+# Synapse runtime data — never commit captured user data.
+# IMPORTANT: do NOT add `SYNAPSE/` here. On case-insensitive filesystems
+# (Windows, default macOS) it would collide with the `synapse/` Python
+# package and silently exclude all source code from commits.
+/vault/
+/synapse_vault/
 *.db
 *.db-journal
 *.sqlite
