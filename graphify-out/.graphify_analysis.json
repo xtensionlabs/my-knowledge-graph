@@ -1,0 +1,456 @@
+{
+  "communities": {
+    "0": [
+      "claude_agents_librarian",
+      "claude_alembic",
+      "claude_api_usage_table",
+      "claude_apscheduler",
+      "claude_capture_telegram_bot",
+      "claude_chromadb",
+      "claude_claude_sonnet",
+      "claude_config",
+      "claude_critic_prompt",
+      "claude_fastapi",
+      "claude_fernet",
+      "claude_gateway_auth",
+      "claude_graph_models",
+      "claude_graph_operations",
+      "claude_graph_retention",
+      "claude_librarian_prompt",
+      "claude_llm_client",
+      "claude_loguru",
+      "claude_networkx",
+      "claude_obsidian_rest_api",
+      "claude_obsidian_vault",
+      "claude_prd_reference",
+      "claude_prompts_dir",
+      "claude_pydantic",
+      "claude_pydantic_settings",
+      "claude_pytest",
+      "claude_python_telegram_bot",
+      "claude_sm2",
+      "claude_sqlite_sqlmodel",
+      "claude_synapse_project",
+      "claude_typer",
+      "claude_uv",
+      "claude_vault_sync"
+    ],
+    "1": [
+      "any",
+      "basemodel",
+      "tests_test_llm_client_fake_response",
+      "tests_test_llm_client_fakeusage",
+      "tests_test_llm_client_prompts_dir",
+      "tests_test_llm_client_py",
+      "tests_test_llm_client_py_str",
+      "tests_test_llm_client_rationale_1",
+      "tests_test_llm_client_rationale_120",
+      "tests_test_llm_client_rationale_142",
+      "tests_test_llm_client_rationale_170",
+      "tests_test_llm_client_rationale_19",
+      "tests_test_llm_client_rationale_34",
+      "tests_test_llm_client_rationale_46",
+      "tests_test_llm_client_rationale_62",
+      "tests_test_llm_client_rationale_96",
+      "tests_test_llm_client_test_schema_validation_failure_retries",
+      "tests_test_llm_client_test_structured_call_happy_path",
+      "tests_test_llm_client_test_structured_call_raises_after_exhausted_retries",
+      "tests_test_llm_client_test_structured_call_retries_on_bad_json",
+      "tests_test_llm_client_test_structured_call_strips_code_fences",
+      "tests_test_llm_client_tinyout"
+    ],
+    "2": [
+      "librarianoutput",
+      "tests_test_librarian_fake_call_result",
+      "tests_test_librarian_mock_client",
+      "tests_test_librarian_py",
+      "tests_test_librarian_py_path",
+      "tests_test_librarian_py_str",
+      "tests_test_librarian_rationale_1",
+      "tests_test_librarian_rationale_39",
+      "tests_test_librarian_rationale_55",
+      "tests_test_librarian_rationale_60",
+      "tests_test_librarian_seed_inbox",
+      "tests_test_librarian_stub_embeddings",
+      "tests_test_librarian_test_librarian_archives_processed_items_never_deletes",
+      "tests_test_librarian_test_librarian_concept_gets_initial_sm2_state",
+      "tests_test_librarian_test_librarian_creates_nodes_and_edges_from_one_capture",
+      "tests_test_librarian_test_librarian_empty_inbox_returns_ok",
+      "tests_test_librarian_test_librarian_low_confidence_marks_needs_review",
+      "tests_test_librarian_test_librarian_preserves_source_ids",
+      "tests_test_librarian_test_librarian_refuses_to_auto_create_insight_nodes",
+      "tests_test_librarian_test_librarian_writes_insight_candidates_to_pending_file",
+      "tests_test_librarian_test_librarian_writes_startup_mirror_suggestions"
+    ],
+    "3": [
+      "tests_test_graph_operations_py",
+      "tests_test_graph_operations_rationale_1",
+      "tests_test_graph_operations_rationale_15",
+      "tests_test_graph_operations_stub_embeddings",
+      "tests_test_graph_operations_test_create_edge_dedup",
+      "tests_test_graph_operations_test_create_edge_rejects_self_loop",
+      "tests_test_graph_operations_test_create_edge_requires_existing_endpoints",
+      "tests_test_graph_operations_test_create_edge_validates_relation",
+      "tests_test_graph_operations_test_create_node_dedup_disabled_raises_on_duplicate",
+      "tests_test_graph_operations_test_create_node_dedup_returns_existing",
+      "tests_test_graph_operations_test_create_node_rejects_invalid_type",
+      "tests_test_graph_operations_test_create_node_returns_node_with_obsidian_path",
+      "tests_test_graph_operations_test_find_orphans_detects_isolated_nodes",
+      "tests_test_graph_operations_test_graph_stats_counts_correctly",
+      "tests_test_graph_operations_test_list_nodes_summary_returns_lightweight_view",
+      "tests_test_graph_operations_test_update_node_appends_content",
+      "tests_test_graph_operations_test_update_node_merges_source_ids_and_tags"
+    ],
+    "4": [
+      "bool",
+      "client",
+      "int",
+      "scripts_run_m0_gate_main",
+      "scripts_run_m0_gate_post_email",
+      "scripts_run_m0_gate_post_telegram_shape",
+      "scripts_run_m0_gate_py",
+      "scripts_run_m0_gate_py_path",
+      "scripts_run_m0_gate_py_str",
+      "scripts_run_m0_gate_rationale_1",
+      "scripts_run_m0_gate_rationale_50",
+      "scripts_run_m0_gate_rationale_69",
+      "scripts_run_m0_gate_rationale_81",
+      "scripts_run_m0_gate_verify_frontmatter",
+      "scripts_run_m0_gate_write_clipboard_capture"
+    ],
+    "5": [
+      "tests_test_inbox_py",
+      "tests_test_inbox_py_path",
+      "tests_test_inbox_rationale_1",
+      "tests_test_inbox_rationale_77",
+      "tests_test_inbox_rationale_86",
+      "tests_test_inbox_read_frontmatter",
+      "tests_test_inbox_test_atomic_write_no_partial_files",
+      "tests_test_inbox_test_count_and_oldest_inbox_items",
+      "tests_test_inbox_test_extras_cannot_overwrite_required_keys",
+      "tests_test_inbox_test_inbox_write_failure_enqueues_to_retry_queue",
+      "tests_test_inbox_test_write_to_inbox_creates_file_with_required_frontmatter",
+      "tests_test_inbox_test_write_to_inbox_preserves_extra_metadata",
+      "tests_test_inbox_test_write_to_inbox_rejects_unknown_source"
+    ],
+    "6": [
+      "prd_energy_model",
+      "prd_layer3_context",
+      "prd_layer5_surfaces",
+      "prd_milestone_m5",
+      "prd_mobile_widget",
+      "prd_session_state",
+      "prd_spaced_repetition",
+      "prd_synapse_v2",
+      "prd_weekly_alignment_review",
+      "readme_claude_md",
+      "readme_synapse",
+      "readme_synapse_prd"
+    ],
+    "7": [
+      "prd_browser_extension",
+      "prd_clipboard_daemon",
+      "prd_cloudflare_email_routing",
+      "prd_email_forward",
+      "prd_layer1_capture",
+      "prd_mermaid_plantuml",
+      "prd_milestone_m0",
+      "prd_ocr_capture",
+      "prd_telegram_bot",
+      "prd_voice_capture",
+      "prd_whisper"
+    ],
+    "8": [
+      "tests_test_ingest_endpoints_py",
+      "tests_test_ingest_endpoints_rationale_1",
+      "tests_test_ingest_endpoints_test_ingest_browser_accepts_valid_key",
+      "tests_test_ingest_endpoints_test_ingest_browser_requires_api_key",
+      "tests_test_ingest_endpoints_test_ingest_email_accepts_valid_signature",
+      "tests_test_ingest_endpoints_test_ingest_email_rejects_bad_signature",
+      "tests_test_ingest_endpoints_test_ingest_email_rejects_missing_signature",
+      "tests_test_ingest_endpoints_test_ingest_git_creates_capture",
+      "tests_test_ingest_endpoints_test_ingest_text_creates_inbox_file",
+      "tests_test_ingest_endpoints_test_ingest_text_rejects_unknown_source"
+    ],
+    "9": [
+      "tests_test_search_fresh_chroma",
+      "tests_test_search_py",
+      "tests_test_search_rationale_1",
+      "tests_test_search_rationale_21",
+      "tests_test_search_rationale_75",
+      "tests_test_search_test_search_centrality_boost_promotes_central_nodes",
+      "tests_test_search_test_search_empty_query_returns_empty",
+      "tests_test_search_test_search_filters_by_type",
+      "tests_test_search_test_search_returns_most_relevant_first",
+      "tests_test_search_test_upsert_and_count"
+    ],
+    "10": [
+      "prd_agent_gateway",
+      "prd_arxiv_monitoring",
+      "prd_dijkstra_concept",
+      "prd_github_trending",
+      "prd_graph_traversal_concept",
+      "prd_hacker_news",
+      "prd_layer2_graph",
+      "prd_milestone_m1",
+      "prd_scout_agent"
+    ],
+    "11": [
+      "tests_test_embeddings_py",
+      "tests_test_embeddings_rationale_1",
+      "tests_test_embeddings_rationale_18",
+      "tests_test_embeddings_test_embed_batch_matches_sequential_calls",
+      "tests_test_embeddings_test_embed_batch_zero_vector_for_empty_input",
+      "tests_test_embeddings_test_embed_text_handles_empty",
+      "tests_test_embeddings_test_embed_text_is_deterministic",
+      "tests_test_embeddings_test_embed_text_returns_expected_shape",
+      "tests_test_embeddings_warm_model"
+    ],
+    "12": [
+      "tests_test_retention_py",
+      "tests_test_retention_rationale_1",
+      "tests_test_retention_test_blackout_resets_interval",
+      "tests_test_retention_test_ease_never_below_floor",
+      "tests_test_retention_test_first_perfect_review_uses_initial_interval",
+      "tests_test_retention_test_initial_state_has_default_ease",
+      "tests_test_retention_test_invalid_quality_raises",
+      "tests_test_retention_test_second_review_jumps_to_six_days",
+      "tests_test_retention_test_third_review_multiplies_by_ease"
+    ],
+    "13": [
+      "monkeypatch",
+      "tests_conftest_fastapi_app",
+      "tests_conftest_isolated_vault",
+      "tests_conftest_py",
+      "tests_conftest_py_path",
+      "tests_conftest_rationale_1",
+      "tests_conftest_rationale_21",
+      "tests_conftest_rationale_51"
+    ],
+    "14": [
+      "tests_test_clipboard_py",
+      "tests_test_clipboard_rationale_1",
+      "tests_test_clipboard_test_credential_shaped_content_is_skipped",
+      "tests_test_clipboard_test_dedup_window_prevents_repeats",
+      "tests_test_clipboard_test_long_text_qualifies",
+      "tests_test_clipboard_test_non_string_input_skipped",
+      "tests_test_clipboard_test_short_text_is_skipped",
+      "tests_test_clipboard_test_whitespace_only_skipped"
+    ],
+    "15": [
+      "prd_consent_layer",
+      "prd_induction_proof_concept",
+      "prd_insight_nodes",
+      "prd_milestone_m4",
+      "prd_node_types",
+      "prd_strategist_agent",
+      "prd_synergy_windows"
+    ],
+    "16": [
+      "prd_critic_agent",
+      "prd_delta_briefing",
+      "prd_ebbinghaus_curve",
+      "prd_guardian_agent",
+      "prd_layer4_agents",
+      "prd_milestone_m2",
+      "prd_synthesizer_agent"
+    ],
+    "17": [
+      "tests_test_email_parsing_py",
+      "tests_test_email_parsing_rationale_1",
+      "tests_test_email_parsing_test_json_envelope_round_trip",
+      "tests_test_email_parsing_test_quoted_reply_stripped",
+      "tests_test_email_parsing_test_rfc822_or_json_required",
+      "tests_test_email_parsing_test_signature_stripped",
+      "tests_test_email_parsing_test_urls_extracted_in_order"
+    ],
+    "18": [
+      "tests_test_vault_sync_py",
+      "tests_test_vault_sync_rationale_1",
+      "tests_test_vault_sync_stub_embeddings",
+      "tests_test_vault_sync_test_frontmatter_includes_retention_for_concepts",
+      "tests_test_vault_sync_test_user_authored_content_preserved_on_resync",
+      "tests_test_vault_sync_test_write_node_file_creates_markdown_with_frontmatter",
+      "tests_test_vault_sync_test_write_node_file_includes_user_section_marker"
+    ],
+    "19": [
+      "prd_git_hooks",
+      "prd_inbox",
+      "prd_librarian_agent",
+      "prd_milestone_m3",
+      "prd_startup_mirror",
+      "prd_state_machines_concept"
+    ],
+    "20": [
+      "prd_obsidian_canvas",
+      "prd_obsidian_dataview",
+      "prd_obsidian_periodic_notes",
+      "prd_obsidian_surface",
+      "prd_obsidian_templater"
+    ],
+    "21": [
+      "tests_test_database_py",
+      "tests_test_database_rationale_1",
+      "tests_test_database_test_edge_round_trip",
+      "tests_test_database_test_inbox_queue_and_capture_log_tables_exist",
+      "tests_test_database_test_init_db_idempotent"
+    ],
+    "22": [
+      "claude_settings_local_json",
+      "claude_settings_local_permissions",
+      "claude_settings_local_permissions_allow"
+    ],
+    "23": [
+      "tests_test_health_py",
+      "tests_test_health_rationale_1",
+      "tests_test_health_test_health_returns_ok"
+    ],
+    "24": [
+      "tests_init_py"
+    ],
+    "25": [
+      "prd_milestone_m6"
+    ]
+  },
+  "cohesion": {
+    "0": 0.06628787878787878,
+    "1": 0.12121212121212122,
+    "2": 0.22380952380952382,
+    "3": 0.11764705882352941,
+    "4": 0.24761904761904763,
+    "5": 0.19230769230769232,
+    "6": 0.19696969696969696,
+    "7": 0.18181818181818182,
+    "8": 0.2,
+    "9": 0.2,
+    "10": 0.2222222222222222,
+    "11": 0.2222222222222222,
+    "12": 0.2222222222222222,
+    "13": 0.25,
+    "14": 0.25,
+    "15": 0.3333333333333333,
+    "16": 0.3333333333333333,
+    "17": 0.2857142857142857,
+    "18": 0.2857142857142857,
+    "19": 0.3333333333333333,
+    "20": 0.4,
+    "21": 0.4,
+    "22": 0.6666666666666666,
+    "23": 0.6666666666666666,
+    "24": 1.0,
+    "25": 1.0
+  },
+  "gods": [
+    {
+      "id": "claude_synapse_project",
+      "label": "Synapse Project",
+      "degree": 18
+    },
+    {
+      "id": "tests_test_librarian_mock_client",
+      "label": "_mock_client()",
+      "degree": 13
+    },
+    {
+      "id": "tests_test_librarian_seed_inbox",
+      "label": "_seed_inbox()",
+      "degree": 12
+    },
+    {
+      "id": "librarianoutput",
+      "label": "LibrarianOutput",
+      "degree": 10
+    },
+    {
+      "id": "tests_test_llm_client_fake_response",
+      "label": "_fake_response()",
+      "degree": 10
+    },
+    {
+      "id": "prd_layer1_capture",
+      "label": "Layer 1: Capture (Ingestion)",
+      "degree": 10
+    },
+    {
+      "id": "prd_layer2_graph",
+      "label": "Layer 2: Knowledge Graph (Knowledge Store)",
+      "degree": 9
+    },
+    {
+      "id": "scripts_run_m0_gate_main",
+      "label": "main()",
+      "degree": 7
+    },
+    {
+      "id": "prd_layer4_agents",
+      "label": "Layer 4: Reasoning (Agents)",
+      "degree": 7
+    },
+    {
+      "id": "scripts_run_m0_gate_post_telegram_shape",
+      "label": "post_telegram_shape()",
+      "degree": 6
+    }
+  ],
+  "surprises": [
+    {
+      "source": "M0 Foundation (Capture) \u2014 Completed",
+      "target": "Layer 1: Capture (Ingestion)",
+      "source_files": [
+        "README.md",
+        "SYNAPSE_PRD.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `M0 Foundation (Capture) \u2014 Completed` unexpectedly reaches hub `Layer 1: Capture (Ingestion)`"
+    },
+    {
+      "source": "M1 The Graph Lives \u2014 Pending",
+      "target": "Layer 2: Knowledge Graph (Knowledge Store)",
+      "source_files": [
+        "README.md",
+        "SYNAPSE_PRD.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `M1 The Graph Lives \u2014 Pending` unexpectedly reaches hub `Layer 2: Knowledge Graph (Knowledge Store)`"
+    },
+    {
+      "source": "M5 Full Surface Layer \u2014 Pending",
+      "target": "Layer 5: Surfaces (Interfaces)",
+      "source_files": [
+        "README.md",
+        "SYNAPSE_PRD.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `M5 Full Surface Layer \u2014 Pending` unexpectedly reaches hub `Layer 5: Surfaces (Interfaces)`"
+    },
+    {
+      "source": "M3 Startup Mirror \u2014 Pending",
+      "target": "Startup Mirror (synapse.json Manifest)",
+      "source_files": [
+        "README.md",
+        "SYNAPSE_PRD.md"
+      ],
+      "confidence": "INFERRED",
+      "relation": "conceptually_related_to",
+      "why": "inferred connection - not explicitly stated in source; connects across different repos/directories; peripheral node `M3 Startup Mirror \u2014 Pending` unexpectedly reaches hub `Startup Mirror (synapse.json Manifest)`"
+    },
+    {
+      "source": "SYNAPSE_PRD.md (Authoritative Specification)",
+      "target": "Synapse v2 Living Operating System",
+      "source_files": [
+        "README.md",
+        "SYNAPSE_PRD.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; peripheral node `SYNAPSE_PRD.md (Authoritative Specification)` unexpectedly reaches hub `Synapse v2 Living Operating System`"
+    }
+  ],
+  "tokens": {
+    "input": 8165,
+    "output": 17798
+  }
+}

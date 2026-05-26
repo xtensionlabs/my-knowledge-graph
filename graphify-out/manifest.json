@@ -1,0 +1,87 @@
+{
+  "D:\\DEV\\my-knowledge-graph\\.claude\\settings.local.json": {
+    "mtime": 1779460854.6639948,
+    "ast_hash": "234ebf64ec9a7f789e09178102557377",
+    "semantic_hash": "234ebf64ec9a7f789e09178102557377"
+  },
+  "D:\\DEV\\my-knowledge-graph\\scripts\\run_m0_gate.py": {
+    "mtime": 1779460418.0001252,
+    "ast_hash": "d7ba6233eed3b528f201ac69eb570865",
+    "semantic_hash": "d7ba6233eed3b528f201ac69eb570865"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\conftest.py": {
+    "mtime": 1779456086.2887259,
+    "ast_hash": "2fd741b96567fcf6fdee6c5fd1c8e387",
+    "semantic_hash": "2fd741b96567fcf6fdee6c5fd1c8e387"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_clipboard.py": {
+    "mtime": 1779456142.257135,
+    "ast_hash": "6832b22fa32a99d3fe48be26b2632706",
+    "semantic_hash": "6832b22fa32a99d3fe48be26b2632706"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_database.py": {
+    "mtime": 1779457176.884174,
+    "ast_hash": "3530dc483be027bf53402efbe8d5b65c",
+    "semantic_hash": "3530dc483be027bf53402efbe8d5b65c"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_email_parsing.py": {
+    "mtime": 1779456155.5692973,
+    "ast_hash": "7b11d8992c220fe18a2f44f10a0f2dc0",
+    "semantic_hash": "7b11d8992c220fe18a2f44f10a0f2dc0"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_embeddings.py": {
+    "mtime": 1779544670.2129333,
+    "ast_hash": "6b9c839b3ad0dcfae0ce4f0691ba2ef2",
+    "semantic_hash": "6b9c839b3ad0dcfae0ce4f0691ba2ef2"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_graph_operations.py": {
+    "mtime": 1779544602.8688142,
+    "ast_hash": "2444edb106bebf41176d75051575be5d",
+    "semantic_hash": "2444edb106bebf41176d75051575be5d"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_health.py": {
+    "mtime": 1779456109.378535,
+    "ast_hash": "fac58a776b6984b8cf3b6075c43130f0",
+    "semantic_hash": "fac58a776b6984b8cf3b6075c43130f0"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_inbox.py": {
+    "mtime": 1779456103.3140962,
+    "ast_hash": "8b1444b5fd49715424d38b86d335c20c",
+    "semantic_hash": "8b1444b5fd49715424d38b86d335c20c"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_ingest_endpoints.py": {
+    "mtime": 1779456131.27218,
+    "ast_hash": "f9ebf81dfba57609c6ad76ae95d31d21",
+    "semantic_hash": "f9ebf81dfba57609c6ad76ae95d31d21"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_librarian.py": {
+    "mtime": 1779544654.8466575,
+    "ast_hash": "0f07f0af9e6378719b773c17b323f00a",
+    "semantic_hash": "0f07f0af9e6378719b773c17b323f00a"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_llm_client.py": {
+    "mtime": 1779544579.0897992,
+    "ast_hash": "c5bd3fce729dae27ccacafd0ae074207",
+    "semantic_hash": "c5bd3fce729dae27ccacafd0ae074207"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_retention.py": {
+    "mtime": 1779544549.7183778,
+    "ast_hash": "c26b448d2d0145e5c5a3f035b1c7feea",
+    "semantic_hash": "c26b448d2d0145e5c5a3f035b1c7feea"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_search.py": {
+    "mtime": 1779544686.2333567,
+    "ast_hash": "99aafb51cd776f732640da03354e104b",
+    "semantic_hash": "99aafb51cd776f732640da03354e104b"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\test_vault_sync.py": {
+    "mtime": 1779544618.5784056,
+    "ast_hash": "1119a66877b406a3f1a69804f48986d5",
+    "semantic_hash": "1119a66877b406a3f1a69804f48986d5"
+  },
+  "D:\\DEV\\my-knowledge-graph\\tests\\__init__.py": {
+    "mtime": 1779453796.7916274,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  }
+}
