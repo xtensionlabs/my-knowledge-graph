@@ -12,12 +12,14 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
 from sqlmodel import Session, desc, func, select
 
 from synapse.config import (
     COMMUNITIES_HUB_TOP_K,
     COMMUNITIES_MIN_SIZE,
+    DASHBOARD_API_KEY_HEADER,
+    get_settings,
 )
 from synapse.graph.communities import detect_communities
 from synapse.graph.db import get_engine
@@ -30,7 +32,23 @@ from synapse.graph.operations import (
 )
 from synapse.utils.time import utcnow as _utcnow
 
-router = APIRouter()
+
+def _require_api_key(
+    x_synapse_api_key: str | None = Header(default=None, alias=DASHBOARD_API_KEY_HEADER),
+) -> None:
+    """Reject dashboard requests that don't carry the configured browser API key."""
+    expected = get_settings().synapse_browser_api_key
+    if not expected:
+        # No key configured = open access (localhost-only deployments).
+        return
+    if not x_synapse_api_key or x_synapse_api_key != expected:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="missing or invalid x-synapse-api-key",
+        )
+
+
+router = APIRouter(dependencies=[Depends(_require_api_key)])
 
 
 @router.get("/overview")

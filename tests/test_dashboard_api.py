@@ -23,9 +23,37 @@ def _stub_embeddings():  # type: ignore[no-untyped-def]
 
 @pytest.fixture
 async def client(fastapi_app):  # type: ignore[no-untyped-def]
+    """AsyncClient with the dashboard API key header pre-set (conftest provides the key)."""
+    transport = ASGITransport(app=fastapi_app)
+    async with AsyncClient(
+        transport=transport,
+        base_url="http://test",
+        headers={"x-synapse-api-key": "test-browser-key"},
+    ) as c:
+        yield c
+
+
+@pytest.fixture
+async def unauth_client(fastapi_app):  # type: ignore[no-untyped-def]
+    """AsyncClient WITHOUT the API key — for testing auth rejection."""
     transport = ASGITransport(app=fastapi_app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         yield c
+
+
+@pytest.mark.asyncio
+async def test_dashboard_rejects_missing_api_key(unauth_client) -> None:  # type: ignore[no-untyped-def]
+    resp = await unauth_client.get("/dashboard/overview")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_dashboard_rejects_wrong_api_key(unauth_client) -> None:  # type: ignore[no-untyped-def]
+    resp = await unauth_client.get(
+        "/dashboard/overview",
+        headers={"x-synapse-api-key": "wrong-key"},
+    )
+    assert resp.status_code == 401
 
 
 # ── /dashboard/overview ───────────────────────────────────────────────────────

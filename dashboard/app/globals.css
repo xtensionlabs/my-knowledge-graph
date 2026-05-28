@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────
+   Synapse dashboard — dark technical monospace-leaning theme.
+   Surface levels: bg < surface < surface-2 < surface-3
+   Accent: electric violet for active/load-bearing states.
+   ──────────────────────────────────────────────────────────────────── */
+
+:root {
+  --bg: #0a0a0c;
+  --surface: #111114;
+  --surface-2: #17171c;
+  --surface-3: #1f1f26;
+  --border: #26262d;
+  --border-strong: #3a3a45;
+  --fg: #e6e6ea;
+  --fg-muted: #9a9aa3;
+  --fg-dim: #5e5e68;
+  --accent: #a78bfa;
+  --accent-dim: #6d4dd0;
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --bad: #f87171;
+  --info: #60a5fa;
+  --build: #fb923c;
+  --insight: #f472b6;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-dim: var(--fg-dim);
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-bad: var(--bad);
+  --color-info: var(--info);
+  --color-build: var(--build);
+  --color-insight: var(--insight);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--fg);
+}
+
+body {
+  font-family: var(--font-sans);
+  font-feature-settings: "ss01", "cv11";
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: "calt", "liga", "zero";
+}
+
+::selection {
+  background: rgba(167, 139, 250, 0.25);
+  color: var(--fg);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border: 2px solid var(--bg);
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+}
+
+.react-flow__background {
+  background: var(--surface) !important;
+}
+/* Handles must remain in the DOM so React Flow can compute edge endpoints.
+   We hide them visually (opacity 0) but keep their default 6×6 footprint
+   so position measurement works correctly. */
+.react-flow__handle {
+  opacity: 0;
+  pointer-events: none;
+}
+.react-flow__attribution {
+  background: transparent !important;
+  color: var(--fg-dim) !important;
+}
+.react-flow__controls {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  box-shadow: none;
+}
+.react-flow__controls-button {
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+  fill: var(--fg);
+}
+.react-flow__controls-button:hover {
+  background: var(--surface-3);
+}

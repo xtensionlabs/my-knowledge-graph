@@ -11,10 +11,11 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 
 from synapse import __version__
-from synapse.config import get_settings
+from synapse.config import DASHBOARD_CORS_ORIGINS, get_settings
 from synapse.gateway.middleware import RequestLogMiddleware
 from synapse.gateway.routes import agents, auth, context, dashboard, graph, health, ingest, reviews
 from synapse.graph.db import init_db
@@ -58,6 +59,13 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
     app.add_middleware(RequestLogMiddleware)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=list(DASHBOARD_CORS_ORIGINS),
+        allow_credentials=False,
+        allow_methods=["GET", "POST"],
+        allow_headers=["x-synapse-api-key", "content-type"],
+    )
     app.include_router(health.router)
     app.include_router(ingest.router, prefix="/ingest", tags=["ingest"])
     app.include_router(graph.router)

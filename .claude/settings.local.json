@@ -13,7 +13,11 @@
       "Bash(break)",
       "Bash(curl -s http://127.0.0.1:8000/health)",
       "PowerShell(Get-NetTCPConnection *)",
-      "Bash(uv add *)"
+      "Bash(uv add *)",
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npm uninstall *)",
+      "Bash(npm run *)"
     ]
   }
 }

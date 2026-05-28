@@ -154,6 +154,14 @@ SYNTHESIZER_QUESTION_BANK_MAX: int = 5    # rolling bank size per concept
 SYNTHESIZER_DAILY_FILE_FORMAT: str = "%Y-%m-%d.md"
 SYNTHESIZER_OPEN_QUESTION_AGE_DAYS: int = 3  # surface QUESTIONs older than this
 
+# ── M5b: Dashboard — CORS + auth ────────────────────────────────────────────
+# Origins allowed to call /dashboard/* via CORS. Localhost-only for personal use.
+DASHBOARD_CORS_ORIGINS: tuple[str, ...] = (
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+)
+DASHBOARD_API_KEY_HEADER: str = "x-synapse-api-key"
+
 # ── M5: Critic + Scout + OCR + dashboard ───────────────────────────────────
 
 # Scout (Sonnet 4.5) — weekly external feed filter
