@@ -1,0 +1,21 @@
+# Run synapse-backup.service nightly at 03:30 server time.
+# (Slightly later than the Hebbian-decay cron job at 03:00 inside Synapse,
+# so the decay completes before the snapshot.)
+#
+# Install + enable:
+#   sudo cp deploy/systemd/synapse-backup.{service,timer} /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now synapse-backup.timer
+#   systemctl list-timers synapse-backup.timer
+
+[Unit]
+Description=Synapse nightly backup timer
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+# Run within 10 min of resume if the VM was off at the scheduled time.
+Persistent=true
+RandomizedDelaySec=5min
+
+[Install]
+WantedBy=timers.target

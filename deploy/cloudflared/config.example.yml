@@ -1,0 +1,24 @@
+# Cloudflare Tunnel config — maps a public URL to the local Synapse gateway.
+#
+# Replace TUNNEL_ID + CREDENTIALS_FILE with the values you got from
+# `cloudflared tunnel create synapse`. Replace HOSTNAME with the
+# `*.trycloudflare.com` URL printed by `cloudflared tunnel run` for the
+# free no-domain path, OR `synapse.your-domain.com` if you have a Cloudflare
+# DNS zone.
+#
+# Install at /etc/cloudflared/config.yml on the VPS.
+
+tunnel: TUNNEL_ID
+credentials-file: /etc/cloudflared/CREDENTIALS_FILE.json
+
+ingress:
+  # Everything Synapse exposes goes through one hostname.
+  - hostname: HOSTNAME
+    service: http://127.0.0.1:8000
+    originRequest:
+      # Sane defaults for an API. No HTTP/2 pushdown.
+      connectTimeout: 30s
+      noTLSVerify: false
+      httpHostHeader: HOSTNAME
+  # Required catch-all. Anything that doesn't match above returns 404.
+  - service: http_status:404

@@ -1,0 +1,66 @@
+# Synapse gateway service — runs the FastAPI app, Telegram bot, and APScheduler
+# inside one long-lived `uv run synapse start` process.
+#
+# Install (as root on the VPS, after `deploy/scripts/setup.sh` has run):
+#   sudo cp deploy/systemd/synapse-gateway.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now synapse-gateway
+#
+# Logs:
+#   sudo journalctl -u synapse-gateway -f
+
+[Unit]
+Description=Synapse gateway (FastAPI + scheduler + Telegram bot)
+Documentation=https://github.com/xtensionlabs/my-knowledge-graph
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=synapse
+Group=synapse
+WorkingDirectory=/opt/synapse
+EnvironmentFile=/opt/synapse/.env
+
+# uv lives in the synapse user's $HOME/.local/bin — give systemd the full PATH.
+Environment=PATH=/home/synapse/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# `--no-clipboard` because the VPS has no clipboard daemon.
+# Telegram + scheduler stay enabled — that's the whole point of running on a VPS.
+ExecStart=/home/synapse/.local/bin/uv run synapse start --no-clipboard
+
+# Crash recovery
+Restart=on-failure
+RestartSec=10
+StartLimitInterval=300
+StartLimitBurst=5
+
+# Graceful shutdown — give the agent loop time to flush in-flight work.
+TimeoutStopSec=30
+KillSignal=SIGINT
+
+# Security hardening — drop privileges we don't need.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+# Allow writes only to the vault + log dirs.
+ReadWritePaths=/opt/synapse /var/log/synapse
+
+# Resource limits — 2GB droplet, leave room for OS + cloudflared.
+MemoryMax=1500M
+TasksMax=256
+
+# Log to journald (queryable via `journalctl -u synapse-gateway`).
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,23 @@
+# Oneshot unit that runs the nightly backup script.
+# Triggered by synapse-backup.timer (not directly).
+
+[Unit]
+Description=Synapse nightly backup
+After=synapse-gateway.service
+Wants=synapse-gateway.service
+
+[Service]
+Type=oneshot
+User=synapse
+Group=synapse
+EnvironmentFile=/opt/synapse/.env
+EnvironmentFile=-/etc/synapse-backup.env
+ExecStart=/usr/bin/bash /opt/synapse/deploy/scripts/backup.sh
+
+# Backups can use a chunk of disk + network — give them some time.
+TimeoutStartSec=30min
+
+# Read-write only where we need it.
+ReadWritePaths=/opt/synapse-vault /var/backups/synapse
+ProtectSystem=strict
+NoNewPrivileges=true
