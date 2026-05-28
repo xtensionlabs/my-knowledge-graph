@@ -154,6 +154,25 @@ SYNTHESIZER_QUESTION_BANK_MAX: int = 5    # rolling bank size per concept
 SYNTHESIZER_DAILY_FILE_FORMAT: str = "%Y-%m-%d.md"
 SYNTHESIZER_OPEN_QUESTION_AGE_DAYS: int = 3  # surface QUESTIONs older than this
 
+# ── M5: Critic + Scout + OCR + dashboard ───────────────────────────────────
+
+# Scout (Sonnet 4.5) — weekly external feed filter
+SCOUT_SCHEDULE_DAY_OF_WEEK: str = "sat"
+SCOUT_SCHEDULE_HOUR: int = 10
+SCOUT_MAX_ITEMS_PER_RUN: int = 50
+SCOUT_RELEVANCE_THRESHOLD: float = 0.6   # below → ignored
+
+# Critic — manual trigger; no schedule. Single-most-important-fix discipline.
+CRITIC_MAX_ARTIFACT_BYTES: int = 100_000
+
+# OCR — Tesseract (local) routes pure text; Vision routes diagrams.
+# A vision call costs money; only invoke when Tesseract returns < this much text.
+OCR_VISION_FALLBACK_MIN_CHARS: int = 40
+
+# Community detection (PRD Appendix A.4)
+COMMUNITIES_MIN_SIZE: int = 3            # ignore communities smaller than this
+COMMUNITIES_HUB_TOP_K: int = 3           # how many hub concepts to surface per community
+
 # ── M4: Strategic + self-rewiring layer ─────────────────────────────────────
 
 # Strategist (Opus 4.7) — weekly + on-demand

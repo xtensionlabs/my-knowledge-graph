@@ -37,6 +37,8 @@ from synapse.config import (
     HEBBIAN_DECAY_SCHEDULE_HOUR,
     HEBBIAN_DECAY_SCHEDULE_MINUTE,
     LIBRARIAN_SCHEDULE_INTERVAL_HOURS,
+    SCOUT_SCHEDULE_DAY_OF_WEEK,
+    SCOUT_SCHEDULE_HOUR,
     STRATEGIST_SCHEDULE_DAY_OF_WEEK,
     STRATEGIST_SCHEDULE_HOUR,
     SYNAPSE_TIMEZONE,
@@ -52,6 +54,7 @@ JOB_GUARDIAN_INTERVAL = "guardian_interval"
 JOB_STRATEGIST_WEEKLY = "strategist_weekly"
 JOB_CONSOLIDATOR_NIGHTLY = "consolidator_nightly"
 JOB_HEBBIAN_DECAY = "hebbian_decay"
+JOB_SCOUT_WEEKLY = "scout_weekly"
 
 _scheduler: AsyncIOScheduler | None = None
 
@@ -142,6 +145,17 @@ async def _run_consolidator() -> None:
         logger.info("[scheduler] consolidator: {summary}", summary=result.summary)
     except Exception as exc:  # noqa: BLE001
         logger.exception("[scheduler] consolidator crashed: {exc}", exc=exc)
+
+
+async def _run_scout() -> None:
+    """Weekly external-signal triage."""
+    from synapse.agents.scout import scout
+
+    try:
+        result = await scout.run()
+        logger.info("[scheduler] scout: {summary}", summary=result.summary)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("[scheduler] scout crashed: {exc}", exc=exc)
 
 
 def _run_hebbian_decay() -> None:
@@ -276,6 +290,19 @@ def build_scheduler() -> AsyncIOScheduler:
         id=JOB_HEBBIAN_DECAY,
         replace_existing=True,
         name="Hebbian decay — nightly edge weight decay (03:00)",
+    )
+    # M5 jobs
+    scheduler.add_job(
+        _run_scout,
+        trigger=CronTrigger(
+            day_of_week=SCOUT_SCHEDULE_DAY_OF_WEEK,
+            hour=SCOUT_SCHEDULE_HOUR,
+            minute=0,
+            timezone=SYNAPSE_TIMEZONE,
+        ),
+        id=JOB_SCOUT_WEEKLY,
+        replace_existing=True,
+        name="Scout — weekly external-signal triage (Sat 10:00)",
     )
 
     return scheduler

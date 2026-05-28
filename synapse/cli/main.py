@@ -406,10 +406,30 @@ def simulate_text(
 
 
 @app.command()
-def ocr(path: Annotated[Path, typer.Argument(help="Image file path.")]) -> None:
-    """OCR a local image (M5)."""
-    console.print(f"[yellow]ocr stub — M5 deliverable. file={path}[/yellow]")
-    raise typer.Exit(1)
+def ocr(
+    path: Annotated[Path, typer.Argument(help="Image file path.")],
+    no_inbox: Annotated[bool, typer.Option("--no-inbox", help="Print text only; don't write to inbox/.")] = False,
+) -> None:
+    """OCR a local image and (by default) drop the extracted text into the inbox.
+
+    Tries Tesseract first (free, local). Falls back to Claude Vision for diagrams.
+    """
+    from synapse.capture.ocr import OCRError, ocr_to_inbox
+
+    configure_logging(component="cli")
+    try:
+        result = asyncio.run(ocr_to_inbox(path, write_inbox=not no_inbox))
+    except OCRError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]✓ {result.method}[/green] ({len(result.text)} chars)")
+    if result.inbox_path:
+        console.print(f"  inbox: {result.inbox_path.name}")
+    if result.cost_usd:
+        console.print(f"  cost: ${result.cost_usd:.4f}")
+    if no_inbox:
+        console.print()
+        console.print(result.text)
 
 
 hooks_app = typer.Typer(help="Git hook management.", no_args_is_help=True)
@@ -887,6 +907,96 @@ def auth_google_status_cmd() -> None:
     console.print(f"  refresh_token: {'yes' if status['has_refresh_token'] else 'no'}")
     console.print(f"  scopes: {', '.join(status['scopes'])}")
 
+
+# ── M5: Critic + Scout commands ──────────────────────────────────────────────
+
+@app.command()
+def critic(
+    file: Annotated[Optional[Path], typer.Option("--file", "-f", help="Critique a file.")] = None,
+    kind: Annotated[str, typer.Option("--kind", "-k", help="Artifact kind.")] = "freeform",
+    text: Annotated[Optional[str], typer.Option("--text", "-t", help="Critique inline text.")] = None,
+    context_note: Annotated[str, typer.Option("--context", "-c", help="Optional context note.")] = "",
+) -> None:
+    """Critique a file or inline text. Returns exactly one most-important fix."""
+    from synapse.agents.critic import CritiqueRequest, critic as _critic, critique_file
+
+    configure_logging(component="cli")
+    if file:
+        request = critique_file(file, kind=kind, context=context_note)
+    elif text:
+        request = CritiqueRequest(artifact=text, artifact_kind=kind, context=context_note)
+    else:
+        console.print("[red]provide either --file or --text[/red]")
+        raise typer.Exit(1)
+    result = asyncio.run(_critic.run(request=request))
+    style = "green" if result.ok else "red"
+    console.print(f"[{style}]{result.summary}[/{style}]")
+    for k, v in result.artifacts.items():
+        if isinstance(v, str) and len(v) > 80:
+            console.print(f"  [bold]{k}:[/bold]")
+            console.print(f"    {v}")
+        else:
+            console.print(f"  {k}: {v}")
+    if result.errors:
+        for e in result.errors:
+            console.print(f"  [red]error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+scout_app = typer.Typer(help="Scout — weekly external-signal filter.", no_args_is_help=True)
+app.add_typer(scout_app, name="scout")
+
+
+@scout_app.command("add")
+def scout_add(
+    title: Annotated[str, typer.Option("--title", "-t", help="Item title.")],
+    url: Annotated[str, typer.Option("--url", "-u", help="Source URL.")] = "",
+    summary: Annotated[str, typer.Option("--summary", "-s", help="Short summary.")] = "",
+    source: Annotated[str, typer.Option("--source")] = "manual",
+) -> None:
+    """Add one item to the scout triage queue."""
+    from synapse.agents.scout import ScoutItem, add_to_queue
+
+    path = add_to_queue(ScoutItem(title=title, source=source, url=url, summary=summary))
+    console.print(f"[green]✓ queued: {title}[/green]")
+    console.print(f"[dim]  {path}[/dim]")
+
+
+@scout_app.command("run")
+def scout_run() -> None:
+    """Run the Scout now on the current queue."""
+    from synapse.agents.scout import scout as _scout
+
+    configure_logging(component="cli")
+    result = asyncio.run(_scout.run())
+    style = "green" if result.ok else "red"
+    console.print(f"[{style}]{result.summary}[/{style}]")
+    for k, v in result.artifacts.items():
+        if k == "digest_markdown":
+            continue
+        console.print(f"  {k}: {v}")
+
+
+@graph_app.command("hubs")
+def graph_hubs_cmd() -> None:
+    """Surface hub concepts via community detection (PRD A.4)."""
+    from synapse.graph.communities import detect_communities
+
+    communities = detect_communities()
+    if not communities:
+        console.print("[yellow]no communities yet (graph too small)[/yellow]")
+        return
+    table = Table(title=f"communities ({len(communities)})", show_header=True)
+    table.add_column("#")
+    table.add_column("size")
+    table.add_column("hub concepts (degree)")
+    for c in communities:
+        hub_text = ", ".join(f"{h.title} ({h.degree})" for h in c.hubs)
+        table.add_row(str(c.index), str(c.size), hub_text)
+    console.print(table)
+
+
+# Keep the Google sync block right after the new M5 commands so it remains in the CLI surface.
 
 @google_app.command("sync")
 def auth_google_sync_cmd(

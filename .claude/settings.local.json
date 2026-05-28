@@ -12,7 +12,8 @@
       "Bash(curl -sf http://127.0.0.1:8000/health)",
       "Bash(break)",
       "Bash(curl -s http://127.0.0.1:8000/health)",
-      "PowerShell(Get-NetTCPConnection *)"
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(uv add *)"
     ]
   }
 }
