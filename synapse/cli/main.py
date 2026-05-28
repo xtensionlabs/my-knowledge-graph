@@ -733,6 +733,178 @@ def graph_orphans_cmd() -> None:
     console.print(table)
 
 
+@graph_app.command("weak-edges")
+def graph_weak_edges_cmd(
+    threshold: Annotated[float, typer.Option("--threshold", "-t", help="Weight ceiling.")] = 0.1,
+) -> None:
+    """Show edges whose Hebbian weight has decayed below `threshold` (PRD Appendix A.1)."""
+    from synapse.graph.hebbian import list_weak_edges
+    from synapse.graph.operations import get_node
+
+    weak = list_weak_edges(threshold=threshold)
+    if not weak:
+        console.print(f"[green]no edges below threshold {threshold}[/green]")
+        return
+    table = Table(title=f"weak edges (< {threshold})", show_header=True)
+    table.add_column("source")
+    table.add_column("→ target")
+    table.add_column("relation")
+    table.add_column("weight")
+    table.add_column("last_strengthened")
+    for e in weak:
+        src = get_node(e.source_node_id)
+        tgt = get_node(e.target_node_id)
+        table.add_row(
+            (src.title if src else e.source_node_id)[:30],
+            (tgt.title if tgt else e.target_node_id)[:30],
+            e.relation_type,
+            f"{e.weight:.3f}",
+            e.last_strengthened.isoformat() if e.last_strengthened else "(never)",
+        )
+    console.print(table)
+
+
+@graph_app.command("cold")
+def graph_cold_cmd(
+    threshold: Annotated[float, typer.Option("--threshold", "-t", help="Freshness ceiling.")] = 0.1,
+    limit: Annotated[int, typer.Option("--limit", "-n")] = 25,
+) -> None:
+    """Show nodes whose freshness has fallen below `threshold` (PRD Appendix A.3)."""
+    from synapse.graph.freshness import list_cold_nodes
+
+    cold = list_cold_nodes(threshold=threshold, limit=limit)
+    if not cold:
+        console.print(f"[green]no nodes below freshness {threshold}[/green]")
+        return
+    table = Table(title=f"cold nodes (freshness < {threshold})", show_header=True)
+    table.add_column("type")
+    table.add_column("title")
+    table.add_column("freshness")
+    for n, f in cold:
+        nt = n.type.value if hasattr(n.type, "value") else str(n.type)
+        table.add_row(nt, n.title, f"{f:.3f}")
+    console.print(table)
+
+
+# ── M4: agent commands ───────────────────────────────────────────────────────
+
+strategist_app = typer.Typer(help="Strategist agent — weekly planning + collision detection.", no_args_is_help=True)
+app.add_typer(strategist_app, name="strategist")
+
+
+@strategist_app.command("run")
+def strategist_run_cmd(
+    lookahead_hours: Annotated[int, typer.Option("--lookahead", "-l")] = 168,
+) -> None:
+    """Run the Strategist now (default lookahead: 7 days)."""
+    from synapse.agents.strategist import strategist
+
+    configure_logging(component="cli")
+    result = asyncio.run(strategist.run(lookahead_hours=lookahead_hours))
+    style = "green" if result.ok else "red"
+    console.print(f"[{style}]{result.summary}[/{style}]")
+    for k, v in result.artifacts.items():
+        console.print(f"  {k}: {v}")
+    if result.errors:
+        for e in result.errors:
+            console.print(f"  [red]error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+guardian_app = typer.Typer(help="Guardian agent — burnout watchdog.", no_args_is_help=True)
+app.add_typer(guardian_app, name="guardian")
+
+
+@guardian_app.command("run")
+def guardian_run_cmd() -> None:
+    """Run the Guardian now (silent if no thresholds tripped)."""
+    from synapse.agents.guardian import guardian
+
+    configure_logging(component="cli")
+    result = asyncio.run(guardian.run())
+    console.print(result.summary)
+    if result.artifacts.get("nudge"):
+        console.print()
+        console.print(f"[yellow]{result.artifacts.get('message', '')}[/yellow]")
+
+
+@app.command()
+def consolidate() -> None:
+    """Run the nightly consolidation pass (Synthesizer abstraction mode)."""
+    from synapse.agents.synthesizer import synthesizer
+
+    configure_logging(component="cli")
+    result = asyncio.run(synthesizer.consolidate())
+    style = "green" if result.ok else "red"
+    console.print(f"[{style}]{result.summary}[/{style}]")
+    for k, v in result.artifacts.items():
+        console.print(f"  {k}: {v}")
+    if result.errors:
+        for e in result.errors:
+            console.print(f"  [red]error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+# ── M4: auth commands ───────────────────────────────────────────────────────
+
+auth_app = typer.Typer(help="OAuth integrations (Google, GitHub).", no_args_is_help=True)
+app.add_typer(auth_app, name="auth")
+
+google_app = typer.Typer(help="Google Calendar OAuth.", no_args_is_help=True)
+auth_app.add_typer(google_app, name="google")
+
+
+@google_app.command("start")
+def auth_google_start_cmd() -> None:
+    """Print the Google authorize URL (open it in a browser to consent)."""
+    from synapse.gateway.auth import AuthError, start_authorization
+
+    try:
+        result = start_authorization("google_calendar")
+    except AuthError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print("[bold]Open this URL in a browser to authorize:[/bold]\n")
+    console.print(result.authorize_url)
+    console.print(
+        "\n[dim]After consenting, Google redirects to the gateway callback "
+        "(must be running) which stores the encrypted tokens.[/dim]"
+    )
+
+
+@google_app.command("status")
+def auth_google_status_cmd() -> None:
+    """Show whether Google Calendar credentials are stored."""
+    from synapse.gateway.auth import credential_status
+
+    status = credential_status("google_calendar")
+    if not status.get("configured"):
+        console.print("[yellow]google_calendar: not connected[/yellow]")
+        console.print("[dim]  run `synapse auth google start` to begin OAuth[/dim]")
+        return
+    console.print("[green]google_calendar: connected[/green]")
+    console.print(f"  expires_at: {status['expires_at']}")
+    console.print(f"  refresh_token: {'yes' if status['has_refresh_token'] else 'no'}")
+    console.print(f"  scopes: {', '.join(status['scopes'])}")
+
+
+@google_app.command("sync")
+def auth_google_sync_cmd(
+    lookahead_hours: Annotated[int, typer.Option("--lookahead", "-l")] = 168,
+) -> None:
+    """Import upcoming Google Calendar events as EVENT nodes."""
+    from synapse.gateway.auth import AuthError
+    from synapse.integrations.google_calendar import CalendarError, sync_calendar_to_events
+
+    configure_logging(component="cli")
+    try:
+        n = sync_calendar_to_events(lookahead_hours=lookahead_hours)
+    except (AuthError, CalendarError) as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]✓ imported {n} event(s) from Google Calendar[/green]")
+
+
 @app.command()
 def logs(
     component: Annotated[str, typer.Argument(help="gateway | clipboard | cli")] = "gateway",

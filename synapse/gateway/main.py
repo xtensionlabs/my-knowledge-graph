@@ -16,7 +16,7 @@ from loguru import logger
 from synapse import __version__
 from synapse.config import get_settings
 from synapse.gateway.middleware import RequestLogMiddleware
-from synapse.gateway.routes import agents, context, graph, health, ingest, reviews
+from synapse.gateway.routes import agents, auth, context, graph, health, ingest, reviews
 from synapse.graph.db import init_db
 from synapse.logging_setup import configure_logging
 
@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(agents.router)
     app.include_router(reviews.router)
     app.include_router(context.router)
+    app.include_router(auth.router, prefix="/auth", tags=["auth"])
     return app
 
 

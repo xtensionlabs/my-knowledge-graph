@@ -87,9 +87,13 @@ class Edge(SQLModel, table=True):
     target_node_id: str = Field(index=True, foreign_key="nodes.id")
     relation_type: str = Field(index=True)  # validated against RelationType at write time
     weight: float = 1.0
-    created_by: str = "user"  # librarian | synthesizer | user
+    created_by: str = "user"  # librarian | synthesizer | user | strategist | guardian
     created_at: datetime = Field(default_factory=_utcnow)
     note: Optional[str] = None
+
+    # Hebbian dynamics (PRD Appendix A.1). Null on legacy rows; defaults to
+    # created_at on first strengthen so decay grace period is honored.
+    last_strengthened: Optional[datetime] = None
 
 
 # ── Runtime / gateway state ──────────────────────────────────────────────────

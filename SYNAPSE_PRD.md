@@ -477,3 +477,75 @@ The path from "personal second brain" to "institutional intelligence product" is
 *Last updated: May 2026 | Wint3rX / Xtension Labs*
 *Architecture version: 2.0*
 *Next review: End of Semester 1*
+
+---
+
+## Appendix A — Cognitive Enhancements (added 2026-05-26)
+
+### A.0 Why this appendix exists
+
+Synapse v2 was scoped as a productivity-first cognitive exoskeleton for one builder-student. Mid-M3 the operator widened the vision: Synapse should be a **general substrate for any second-brain workload**, behaving more like a real brain than a smart filing cabinet. This appendix codifies the brain-like behaviors added to the roadmap and locks them to specific milestones. Five enhancements were proposed; three land in **M4**, one in **M5**, one is deferred to **post-M6**.
+
+### A.1 Hebbian Edge Learning — *M4*
+
+**Principle:** *Neurons that fire together wire together.* Edges between nodes that co-activate in any agent run (Librarian extraction, Synthesizer briefing, Strategist reasoning, manual review) get their `weight` strengthened. Edges whose endpoints never co-activate decay over time.
+
+**Mechanics:**
+- A new helper `strengthen_edges(node_ids: list[str], factor: float)` is called whenever an agent operates on ≥2 nodes together in one logical context.
+- Every strengthen call bumps weight by `HEBBIAN_STRENGTHEN_FACTOR` (additive, default 0.1) and updates `Edge.last_strengthened`. Weight capped at `HEBBIAN_WEIGHT_CEILING` (default 5.0).
+- A nightly scheduler job (`hebbian_decay`) applies a multiplicative decay (`HEBBIAN_DECAY_FACTOR`, default 0.99) to every edge whose `last_strengthened` is older than `HEBBIAN_DECAY_GRACE_DAYS` (default 7). Floor at `HEBBIAN_WEIGHT_FLOOR` (default 0.05).
+- Edges below `HEBBIAN_WEAK_EDGE_THRESHOLD` (0.1) are surfaced to the user via `synapse graph weak-edges`; they are NEVER deleted (CLAUDE.md rule). The user can prune manually.
+
+**Schema delta:** `Edge.last_strengthened: datetime | None` (nullable for back-compat).
+
+**Why:** Without Hebbian dynamics, the graph is static — it remembers everything equally. With it, the graph *prioritizes the user's actual patterns of thought*.
+
+### A.2 Sleep-like Consolidation — *M4*
+
+**Principle:** During sleep, the brain replays the day's activity and consolidates specific facts into generalizable principles. Synapse runs a nightly **consolidation pass** that mirrors this.
+
+**Mechanics:**
+- A second Synthesizer invocation, scheduled at `CONSOLIDATION_HOUR` (default 02:00 local, off-peak).
+- Reads: every CONCEPT and FACT node created or updated in the last 24 hours, plus their edges.
+- Output: zero-or-more abstraction proposals — "These N facts share principle X" — written as INSIGHT candidates in `pending_insights.md` (never auto-created; user must confirm via `synapse insight confirm`).
+- Distinct prompt from the morning Delta Briefing: `synapse/prompts/consolidator.md`.
+
+**Why:** The morning briefing is a *production* artifact (the user reads it). Consolidation is *introspection* — it surfaces principles the user might miss. Same agent (Synthesizer), different mode.
+
+### A.3 Forgetting as Feature — *M4*
+
+**Principle:** The brain forgets to stay efficient. Cold information that hasn't been touched in months should fade from the foreground, not be deleted (CLAUDE.md rule), but de-prioritized in search and never surfaced unprompted.
+
+**Mechanics:**
+- Adds a derived "freshness score" to each node: `freshness = clip(1.0 - days_since_touched / FORGETTING_HORIZON_DAYS, 0.0, 1.0)`.
+- "Touched" = created_at, updated_at, last_reviewed (for CONCEPTs), or any edge whose endpoints include this node was strengthened.
+- The search ranker (`synapse/graph/search.py`) gets a third term alongside semantic distance + centrality: `freshness_weight * freshness`.
+- A `synapse graph cold` CLI surfaces nodes with freshness < 0.1 for manual review/archival.
+
+**Schema delta:** None. Freshness is derived from existing timestamps.
+
+**Why:** Without forgetting, the graph linearly accumulates noise. With it, the surface area the user navigates daily stays roughly constant in cognitive load.
+
+### A.4 Small-World Detection — *deferred to M5*
+
+Community detection (NetworkX has `louvain_communities` / `greedy_modularity_communities`) surfaces "hub concepts" and "expertise clusters." This is fundamentally a **visualization-driven feature** — surfacing it without the Dashboard wastes the analysis. Slotted into M5 alongside the Next.js dashboard.
+
+### A.5 Multimodal Embeddings — *deferred to post-M6*
+
+True text+image+code+voice in one embedding space requires a CLIP-class model and a full re-embedding of the existing 384-dim graph. M5 already adds Tesseract + Vision-OCR for image-to-text; voice already transcribes via Whisper at capture. Unified multimodal embeddings are a research-grade upgrade and will be revisited only after the Year 1 success gate.
+
+### A.6 Updated M4 Definition
+
+**M4 — Strategic + Self-Rewiring Layer:**
+1. Strategist agent (Opus 4.7) + collision detection
+2. Guardian agent (Haiku 4.5) + threshold nudges
+3. Real Energy inference (replaces M2 stub)
+4. Google Calendar OAuth (scaffolded; tested with mocks)
+5. **Hebbian edge strengthening + nightly decay job (A.1)**
+6. **Sleep consolidation pass — nightly Synthesizer abstraction run (A.2)**
+7. **Forgetting-aware search ranking (A.3)**
+
+**Success gate:** A collision between an EVENT and a CONCEPT's spaced-repetition window triggers a Strategist tradeoff proposal; Guardian fires a nudge when capture quality drops; Energy correctly classifies a high-velocity capture burst as "high"; the OAuth flow round-trips through a mocked Google response; Hebbian strengthening bumps edge weight on co-activation; an unused edge decays after the grace period; consolidation produces at least one abstraction candidate from a seeded fact cluster.
+
+---
+*Appendix A version: 1.0 — added during M4 planning, 2026-05-26.*

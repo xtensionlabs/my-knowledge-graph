@@ -154,6 +154,61 @@ SYNTHESIZER_QUESTION_BANK_MAX: int = 5    # rolling bank size per concept
 SYNTHESIZER_DAILY_FILE_FORMAT: str = "%Y-%m-%d.md"
 SYNTHESIZER_OPEN_QUESTION_AGE_DAYS: int = 3  # surface QUESTIONs older than this
 
+# ── M4: Strategic + self-rewiring layer ─────────────────────────────────────
+
+# Strategist (Opus 4.7) — weekly + on-demand
+STRATEGIST_SCHEDULE_DAY_OF_WEEK: str = "sun"      # APScheduler cron day_of_week
+STRATEGIST_SCHEDULE_HOUR: int = 18                # Sunday 18:00 local
+STRATEGIST_COLLISION_LOOKAHEAD_HOURS: int = 168   # 7 days
+
+# Guardian (Haiku 4.5) — every 4h health check
+GUARDIAN_NUDGE_MAX_LINES: int = 2                  # Hard cap, enforced post-hoc
+GUARDIAN_CAPTURE_QUALITY_WINDOW_HOURS: int = 24    # rolling window
+GUARDIAN_CAPTURE_QUALITY_MIN_AVG_BYTES: int = 80   # captures below avg → nudge candidate
+GUARDIAN_RETENTION_LAPSE_THRESHOLD: int = 3        # missed reviews in window → nudge candidate
+GUARDIAN_NUDGE_COOLDOWN_HOURS: int = 6             # never nudge twice in this window
+
+# Energy inference (PRD §6.2 / Appendix A) — replaces M2 hardcoded "medium"
+ENERGY_RECENT_WINDOW_MINUTES: int = 60        # baseline window for capture-rate signal
+ENERGY_BASELINE_WINDOW_HOURS: int = 168       # 7-day baseline for normalization
+ENERGY_HIGH_CAPTURE_RATE_MULT: float = 2.0    # ≥ 2× baseline → high
+ENERGY_LOW_CAPTURE_RATE_MULT: float = 0.25    # ≤ 0.25× baseline → low
+ENERGY_NIGHT_HOURS: tuple[int, int] = (23, 5) # local hours classed as low (start_inclusive, end_exclusive)
+ENERGY_DAY_OF_WEEK_BOOST: tuple[int, ...] = (0, 1, 2, 3, 4)  # weekdays default-higher
+
+# ── Hebbian edge learning (Appendix A.1) ────────────────────────────────────
+HEBBIAN_STRENGTHEN_FACTOR: float = 0.1
+HEBBIAN_WEIGHT_CEILING: float = 5.0
+HEBBIAN_WEIGHT_FLOOR: float = 0.05
+HEBBIAN_DECAY_FACTOR: float = 0.99
+HEBBIAN_DECAY_GRACE_DAYS: int = 7
+HEBBIAN_WEAK_EDGE_THRESHOLD: float = 0.1
+HEBBIAN_DECAY_SCHEDULE_HOUR: int = 3            # 03:00 local (after consolidation)
+HEBBIAN_DECAY_SCHEDULE_MINUTE: int = 0
+
+# ── Sleep consolidation (Appendix A.2) ──────────────────────────────────────
+CONSOLIDATION_HOUR: int = 2                     # 02:00 local
+CONSOLIDATION_MINUTE: int = 0
+CONSOLIDATION_LOOKBACK_HOURS: int = 24
+CONSOLIDATION_MIN_NODES: int = 3                # need ≥ 3 fresh nodes to bother
+
+# ── Forgetting / freshness (Appendix A.3) ───────────────────────────────────
+FORGETTING_HORIZON_DAYS: int = 180              # full decay over 6 months
+SEARCH_FRESHNESS_WEIGHT: float = 0.15           # weight in search ranker
+COLD_NODE_FRESHNESS_THRESHOLD: float = 0.1
+
+# ── OAuth / integrations (PRD §8.1–8.2) ─────────────────────────────────────
+GOOGLE_OAUTH_AUTHORIZE_URL: str = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_OAUTH_TOKEN_URL: str = "https://oauth2.googleapis.com/token"
+GOOGLE_OAUTH_REDIRECT_PATH: str = "/auth/google/callback"
+GOOGLE_OAUTH_SCOPES: tuple[str, ...] = (
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "openid",
+    "email",
+)
+GOOGLE_CALENDAR_EVENTS_URL: str = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
+OAUTH_TOKEN_REFRESH_LEEWAY_SECONDS: int = 60   # refresh tokens this many seconds before expiry
+
 # ── M3: Git ingest + manifest ────────────────────────────────────────────────
 SYNAPSE_MANIFEST_FILENAME: str = "synapse.json"
 GIT_HOOK_SCRIPT_NAME: str = "post-commit"

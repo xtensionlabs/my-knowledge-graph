@@ -350,5 +350,193 @@ class Synthesizer(Agent):
             },
         )
 
+    # ── Sleep consolidation pass (PRD Appendix A.2) ──────────────────────────
+
+    async def consolidate(self) -> AgentResult:
+        """Nightly consolidation — surface abstractions across fresh nodes.
+
+        Runs at `CONSOLIDATION_HOUR` (default 02:00 local). Reads CONCEPT and
+        FACT nodes touched in the last `CONSOLIDATION_LOOKBACK_HOURS` and asks
+        Claude to propose generalizable principles connecting ≥2 of them.
+
+        Output: zero-or-more INSIGHT candidates appended to
+        `pending_insights.md`. Never auto-creates INSIGHT nodes (user must
+        confirm via `synapse insight confirm`).
+        """
+        from synapse.agents.librarian import _append_pending, _format_insight, _InsightCandidate
+        from synapse.config import (
+            CONSOLIDATION_LOOKBACK_HOURS,
+            CONSOLIDATION_MIN_NODES,
+        )
+        from synapse.graph.hebbian import strengthen_edges
+
+        # ── 1. Gather fresh CONCEPT and FACT nodes ────────────────────────────
+        now = datetime.now(tz=timezone.utc)
+        cutoff = now - timedelta(hours=CONSOLIDATION_LOOKBACK_HOURS)
+        fresh_nodes: list[dict[str, Any]] = []
+        fresh_ids: list[str] = []
+        with Session(get_engine()) as session:
+            for node_type in (NodeType.CONCEPT, NodeType.FACT):
+                rows = session.exec(
+                    select(Node).where(Node.type == node_type)
+                ).all()
+                for n in rows:
+                    updated = n.updated_at
+                    if updated is None:
+                        continue
+                    if updated.tzinfo is None:
+                        updated = updated.replace(tzinfo=timezone.utc)
+                    if updated < cutoff:
+                        continue
+                    excerpt = (n.content or "").split("\n\n")[0][:200]
+                    fresh_nodes.append(
+                        {
+                            "type": n.type.value if hasattr(n.type, "value") else str(n.type),
+                            "title": n.title,
+                            "content_excerpt": excerpt,
+                        }
+                    )
+                    fresh_ids.append(n.id)
+
+            if len(fresh_nodes) < CONSOLIDATION_MIN_NODES:
+                return AgentResult(
+                    agent="synthesizer-consolidate",
+                    ok=True,
+                    summary=f"skipped — only {len(fresh_nodes)} fresh nodes (need ≥{CONSOLIDATION_MIN_NODES})",
+                    artifacts={"fresh_node_count": len(fresh_nodes)},
+                )
+
+            # ── 2. Neighbors (1-hop)
+            from synapse.graph.models import Edge
+            from sqlalchemy import or_
+
+            id_set = set(fresh_ids)
+            edges_q = session.exec(
+                select(Edge).where(
+                    or_(
+                        Edge.source_node_id.in_(id_set),  # type: ignore[attr-defined]
+                        Edge.target_node_id.in_(id_set),  # type: ignore[attr-defined]
+                    )
+                )
+            ).all()
+            neighbor_ids: set[str] = set()
+            for e in edges_q:
+                for endpoint in (e.source_node_id, e.target_node_id):
+                    if endpoint not in id_set:
+                        neighbor_ids.add(endpoint)
+            neighbors_payload: list[dict[str, Any]] = []
+            if neighbor_ids:
+                neighbor_rows = session.exec(
+                    select(Node).where(Node.id.in_(neighbor_ids))  # type: ignore[attr-defined]
+                ).all()
+                for n in neighbor_rows:
+                    neighbors_payload.append(
+                        {
+                            "type": n.type.value if hasattr(n.type, "value") else str(n.type),
+                            "title": n.title,
+                        }
+                    )
+
+            # ── 3. Existing INSIGHT titles (so we don't restate)
+            existing = session.exec(
+                select(Node).where(Node.type == NodeType.INSIGHT)
+            ).all()
+            existing_titles = [n.title for n in existing]
+
+        prompt_context = {
+            "lookback_hours": CONSOLIDATION_LOOKBACK_HOURS,
+            "fresh_nodes": fresh_nodes,
+            "neighbors": neighbors_payload,
+            "existing_insights": existing_titles,
+        }
+
+        # ── 4. Call Claude (Opus — matches Synthesizer model) ─────────────────
+        from pydantic import BaseModel as _PydBM, Field as _PydField
+
+        class _Abstraction(_PydBM):
+            principle: str
+            supporting_node_titles: list[str] = _PydField(default_factory=list)
+            domain_bridge: str | None = None
+            novelty_confidence: float = _PydField(default=0.5, ge=0.0, le=1.0)
+
+        class _ConsolidationOutput(_PydBM):
+            confidence: float = _PydField(default=0.5, ge=0.0, le=1.0)
+            summary: str = ""
+            abstractions: list[_Abstraction] = _PydField(default_factory=list)
+
+        try:
+            result = await self._client.structured(
+                prompt_file="consolidator.md",
+                context=prompt_context,
+                schema=_ConsolidationOutput,
+                model=SYNTHESIZER_MODEL,
+                agent="synthesizer-consolidate",
+                temperature=0.5,
+                max_tokens=3000,
+            )
+        except StructuredOutputError as exc:
+            return AgentResult(
+                agent="synthesizer-consolidate",
+                ok=False,
+                summary=f"consolidation call failed: {exc.last_error}",
+                errors=[exc.last_error],
+            )
+
+        payload: _ConsolidationOutput = result.parsed  # type: ignore[assignment]
+
+        # ── 5. Filter abstractions: must reference ≥2 supporting nodes
+        kept: list[_Abstraction] = [
+            a for a in payload.abstractions if len(a.supporting_node_titles) >= 2
+        ]
+
+        if not kept:
+            return AgentResult(
+                agent="synthesizer-consolidate",
+                ok=True,
+                summary=payload.summary or "no abstractions this cycle",
+                artifacts={
+                    "fresh_node_count": len(fresh_nodes),
+                    "abstractions_proposed": 0,
+                    "cost_usd": result.cost_usd,
+                },
+            )
+
+        # ── 6. Append as INSIGHT candidates to pending_insights.md
+        settings = get_settings()
+        pending_path = settings.synapse_vault_path / LIBRARIAN_PENDING_INSIGHTS_FILE
+        blocks = [
+            _format_insight(
+                _InsightCandidate(
+                    description=a.principle,
+                    node_titles=a.supporting_node_titles,
+                )
+            )
+            for a in kept
+        ]
+        _append_pending(pending_path, f"From consolidation pass {now.date().isoformat()}", blocks)
+
+        # ── 7. Hebbian: strengthen edges among the supporting nodes of each abstraction
+        with Session(get_engine()) as session:
+            for a in kept:
+                ids: list[str] = []
+                for title in a.supporting_node_titles:
+                    row = session.exec(select(Node).where(Node.title == title)).first()
+                    if row is not None:
+                        ids.append(row.id)
+                if len(ids) >= 2:
+                    strengthen_edges(ids)
+
+        return AgentResult(
+            agent="synthesizer-consolidate",
+            ok=True,
+            summary=f"{len(kept)} abstraction(s) proposed",
+            artifacts={
+                "fresh_node_count": len(fresh_nodes),
+                "abstractions_proposed": len(kept),
+                "pending_insights_path": str(pending_path),
+                "cost_usd": result.cost_usd,
+            },
+        )
+
 
 synthesizer = Synthesizer()

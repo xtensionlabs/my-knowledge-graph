@@ -4,12 +4,14 @@ Registers the Synapse job set on an AsyncIOScheduler with a SQLite job store
 so jobs survive process restarts.
 
 Job set:
-    - synthesizer_daily   — cron 07:00 Africa/Nairobi → run Synthesizer + push Delta Briefing
-    - librarian_interval  — interval 2h → run Librarian on whatever's in inbox/
-    - energy_refresh      — interval 30 min → recompute energy estimate (M2 stub)
-    - horizon_refresh     — interval 1 h → refresh session-state Horizon queue
-
-The Guardian (M4) and Scout (M5) will register their jobs here.
+    - synthesizer_daily   — cron 07:00 Africa/Nairobi → Delta Briefing
+    - librarian_interval  — every 2h → Librarian sweeps inbox/
+    - energy_refresh      — every 30 min → energy estimate refresh
+    - horizon_refresh     — every 1 h → Horizon queue refresh
+    - guardian_interval   — every 4h → burnout watchdog (M4)
+    - strategist_weekly   — cron Sunday 18:00 local → Strategist (M4)
+    - consolidator_nightly — cron 02:00 local → Synthesizer.consolidate (M4)
+    - hebbian_decay       — cron 03:00 local → edge decay sweep (M4)
 
 Started by `synapse start` lifespan alongside gateway + Telegram bot.
 """
@@ -26,10 +28,17 @@ from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
 from synapse.config import (
+    CONSOLIDATION_HOUR,
+    CONSOLIDATION_MINUTE,
     DELTA_BRIEFING_HOUR,
     DELTA_BRIEFING_MINUTE,
     ENERGY_REFRESH_INTERVAL_MINUTES,
+    GUARDIAN_SCHEDULE_INTERVAL_HOURS,
+    HEBBIAN_DECAY_SCHEDULE_HOUR,
+    HEBBIAN_DECAY_SCHEDULE_MINUTE,
     LIBRARIAN_SCHEDULE_INTERVAL_HOURS,
+    STRATEGIST_SCHEDULE_DAY_OF_WEEK,
+    STRATEGIST_SCHEDULE_HOUR,
     SYNAPSE_TIMEZONE,
     get_settings,
 )
@@ -39,6 +48,10 @@ JOB_SYNTHESIZER_DAILY = "synthesizer_daily"
 JOB_LIBRARIAN_INTERVAL = "librarian_interval"
 JOB_ENERGY_REFRESH = "energy_refresh"
 JOB_HORIZON_REFRESH = "horizon_refresh"
+JOB_GUARDIAN_INTERVAL = "guardian_interval"
+JOB_STRATEGIST_WEEKLY = "strategist_weekly"
+JOB_CONSOLIDATOR_NIGHTLY = "consolidator_nightly"
+JOB_HEBBIAN_DECAY = "hebbian_decay"
 
 _scheduler: AsyncIOScheduler | None = None
 
@@ -96,6 +109,54 @@ async def _run_horizon_refresh() -> None:
         logger.debug("[scheduler] horizon refresh: {n} upcoming events", n=n)
     except Exception as exc:  # noqa: BLE001
         logger.warning("[scheduler] horizon refresh failed: {exc}", exc=exc)
+
+
+async def _run_guardian() -> None:
+    """Burnout watchdog — runs every 4 hours."""
+    from synapse.agents.guardian import guardian
+
+    try:
+        result = await guardian.run()
+        logger.info("[scheduler] guardian: {summary}", summary=result.summary)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("[scheduler] guardian crashed: {exc}", exc=exc)
+
+
+async def _run_strategist() -> None:
+    """Weekly strategist — Sunday 18:00 local."""
+    from synapse.agents.strategist import strategist
+
+    try:
+        result = await strategist.run()
+        logger.info("[scheduler] strategist: {summary}", summary=result.summary)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("[scheduler] strategist crashed: {exc}", exc=exc)
+
+
+async def _run_consolidator() -> None:
+    """Nightly consolidation — Synthesizer.consolidate() at 02:00 local."""
+    from synapse.agents.synthesizer import synthesizer
+
+    try:
+        result = await synthesizer.consolidate()
+        logger.info("[scheduler] consolidator: {summary}", summary=result.summary)
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("[scheduler] consolidator crashed: {exc}", exc=exc)
+
+
+def _run_hebbian_decay() -> None:
+    """Decay un-touched edges; sync (no I/O) so AsyncIO scheduling is trivial."""
+    from synapse.graph.hebbian import decay_old_edges
+
+    try:
+        result = decay_old_edges()
+        logger.info(
+            "[scheduler] hebbian decay: examined={ex} decayed={d}",
+            ex=result.edges_examined,
+            d=result.edges_decayed,
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.exception("[scheduler] hebbian decay crashed: {exc}", exc=exc)
 
 
 async def _push_brief_to_telegram(markdown: str) -> None:
@@ -173,6 +234,48 @@ def build_scheduler() -> AsyncIOScheduler:
         id=JOB_HORIZON_REFRESH,
         replace_existing=True,
         name="Horizon queue refresh",
+    )
+    # M4 jobs
+    scheduler.add_job(
+        _run_guardian,
+        trigger=IntervalTrigger(hours=GUARDIAN_SCHEDULE_INTERVAL_HOURS),
+        id=JOB_GUARDIAN_INTERVAL,
+        replace_existing=True,
+        name="Guardian — burnout watchdog (4h)",
+    )
+    scheduler.add_job(
+        _run_strategist,
+        trigger=CronTrigger(
+            day_of_week=STRATEGIST_SCHEDULE_DAY_OF_WEEK,
+            hour=STRATEGIST_SCHEDULE_HOUR,
+            minute=0,
+            timezone=SYNAPSE_TIMEZONE,
+        ),
+        id=JOB_STRATEGIST_WEEKLY,
+        replace_existing=True,
+        name="Strategist — weekly planning (Sun 18:00)",
+    )
+    scheduler.add_job(
+        _run_consolidator,
+        trigger=CronTrigger(
+            hour=CONSOLIDATION_HOUR,
+            minute=CONSOLIDATION_MINUTE,
+            timezone=SYNAPSE_TIMEZONE,
+        ),
+        id=JOB_CONSOLIDATOR_NIGHTLY,
+        replace_existing=True,
+        name="Consolidator — nightly abstraction pass (02:00)",
+    )
+    scheduler.add_job(
+        _run_hebbian_decay,
+        trigger=CronTrigger(
+            hour=HEBBIAN_DECAY_SCHEDULE_HOUR,
+            minute=HEBBIAN_DECAY_SCHEDULE_MINUTE,
+            timezone=SYNAPSE_TIMEZONE,
+        ),
+        id=JOB_HEBBIAN_DECAY,
+        replace_existing=True,
+        name="Hebbian decay — nightly edge weight decay (03:00)",
     )
 
     return scheduler

@@ -22,6 +22,7 @@ from synapse.config import (
     CHROMA_COLLECTION_NAME,
     SEARCH_CENTRALITY_BOOST,
     SEARCH_DEFAULT_LIMIT,
+    SEARCH_FRESHNESS_WEIGHT,
     get_settings,
 )
 from synapse.graph.embeddings import embed_text
@@ -126,9 +127,10 @@ class SearchHit:
     """One result row from a semantic search."""
 
     node_id: str
-    score: float           # combined score (semantic + centrality boost)
+    score: float           # combined score (semantic + centrality + freshness)
     distance: float        # raw cosine distance (lower = closer)
     centrality: float      # graph centrality (0–1 normalized)
+    freshness: float       # 0..1 forgetting score (1.0 = touched today)
     document: str
     metadata: dict[str, Any]
 
@@ -148,8 +150,9 @@ def search(
     types: list[str] | None = None,
     limit: int = SEARCH_DEFAULT_LIMIT,
     centrality_lookup: dict[str, float] | None = None,
+    freshness_lookup: dict[str, float] | None = None,
 ) -> list[SearchHit]:
-    """Semantic search across node embeddings, optionally re-ranked by centrality.
+    """Semantic search across node embeddings, re-ranked by centrality + freshness.
 
     Args:
         query: Natural-language search string.
@@ -158,6 +161,9 @@ def search(
         centrality_lookup: Optional `node_id -> centrality_score` mapping (0–1).
             If provided, results are re-ranked. Caller computes this from
             `synapse.graph.operations.compute_centrality()`.
+        freshness_lookup: Optional `node_id -> freshness` (0..1) from
+            `synapse.graph.freshness.compute_freshness_map()`. Older nodes
+            rank lower (PRD Appendix A.3).
 
     Returns:
         Ranked list of `SearchHit`s, best first.
@@ -166,9 +172,10 @@ def search(
         return []
     _, coll = _client_and_collection()
     query_vec = embed_text(query)
+    overfetch = limit * 3 if (centrality_lookup or freshness_lookup) else limit
     raw = coll.query(
         query_embeddings=[query_vec.tolist()],
-        n_results=limit * 3 if centrality_lookup else limit,  # over-fetch then re-rank
+        n_results=overfetch,
         where=_build_where(types),
     )
 
@@ -177,18 +184,25 @@ def search(
     documents = raw.get("documents", [[]])[0]
     metadatas = raw.get("metadatas", [[]])[0]
 
+    # Weights — semantic gets whatever is left after centrality + freshness claim their share.
+    centrality_w = SEARCH_CENTRALITY_BOOST if centrality_lookup else 0.0
+    freshness_w = SEARCH_FRESHNESS_WEIGHT if freshness_lookup else 0.0
+    semantic_w = max(0.0, 1.0 - centrality_w - freshness_w)
+
     hits: list[SearchHit] = []
     for node_id, dist, doc, meta in zip(ids, distances, documents, metadatas, strict=True):
         centrality = (centrality_lookup or {}).get(node_id, 0.0)
+        freshness = (freshness_lookup or {}).get(node_id, 1.0)  # missing → assume fresh
         # Cosine distance ∈ [0, 2]; convert to similarity ∈ [-1, 1] then squash to [0, 1].
         semantic = max(0.0, 1.0 - (dist / 2.0))
-        combined = semantic * (1.0 - SEARCH_CENTRALITY_BOOST) + centrality * SEARCH_CENTRALITY_BOOST
+        combined = semantic * semantic_w + centrality * centrality_w + freshness * freshness_w
         hits.append(
             SearchHit(
                 node_id=node_id,
                 score=combined,
                 distance=dist,
                 centrality=centrality,
+                freshness=freshness,
                 document=doc or "",
                 metadata=meta or {},
             )
