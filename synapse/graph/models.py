@@ -9,16 +9,13 @@ CRUD lives in `synapse/graph/operations.py` (added in Milestone 1).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
 from sqlmodel import Field, SQLModel
 
-
-def _utcnow() -> datetime:
-    """Naive-free UTC timestamp."""
-    return datetime.now(tz=timezone.utc)
+from synapse.utils.time import utcnow as _utcnow
 
 
 class NodeType(str, Enum):

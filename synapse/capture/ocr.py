@@ -23,7 +23,6 @@ from pathlib import Path
 from typing import Any
 
 from loguru import logger
-from pydantic import BaseModel, Field
 
 from synapse.capture.inbox import write_to_inbox
 from synapse.config import (
@@ -31,7 +30,7 @@ from synapse.config import (
     OCR_VISION_FALLBACK_MIN_CHARS,
     VISION_MODEL,
 )
-from synapse.llm.client import ClaudeClient, StructuredOutputError, claude
+from synapse.llm.client import ClaudeClient, claude
 
 
 _SUPPORTED_EXTENSIONS: tuple[str, ...] = (".png", ".jpg", ".jpeg", ".bmp", ".tiff", ".webp")
@@ -83,15 +82,6 @@ def _run_tesseract(image_path: Path) -> str:
 
 
 # ── Vision (Claude) path ─────────────────────────────────────────────────────
-
-
-class _VisionOCROutput(BaseModel):
-    """Strict schema for the vision OCR call's JSON."""
-
-    confidence: float = Field(ge=0.0, le=1.0)
-    extracted_text: str
-    image_kind: str = "unknown"  # diagram | screenshot | photo | handwriting | unknown
-    spatial_description: str = ""  # for diagrams: describe the layout in prose
 
 
 _MIME_BY_EXT: dict[str, str] = {

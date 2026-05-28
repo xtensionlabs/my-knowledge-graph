@@ -42,6 +42,7 @@ from synapse.context.energy import current_energy
 from synapse.graph.db import get_engine
 from synapse.graph.models import CaptureLog, Node, NodeType
 from synapse.llm.client import ClaudeClient, StructuredOutputError, claude
+from synapse.utils.time import assume_utc as _assume_utc, utcnow as _utcnow
 
 NUDGES_FILENAME = "guardian_nudges.md"
 
@@ -68,16 +69,6 @@ class GuardianSignals:
     strategist_artifact_ignored: bool
     energy: str
     threshold_fired: list[str] = field(default_factory=list)
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
-
-
-def _assume_utc(dt: datetime | None) -> datetime | None:
-    if dt is None:
-        return None
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
 
 
 def _hours_since_last_nudge(nudges_path: Path) -> float:

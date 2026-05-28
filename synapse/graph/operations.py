@@ -28,6 +28,7 @@ from synapse.graph.db import get_engine
 from synapse.graph.embeddings import embed_text
 from synapse.graph.models import Edge, Node, NodeType, RelationType
 from synapse.graph.search import delete_node_embedding, upsert_node_embedding
+from synapse.utils.time import utcnow as _utcnow
 
 
 # ── Exceptions ───────────────────────────────────────────────────────────────
@@ -68,10 +69,6 @@ class NodeWithEdges:
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
 
 
 def _normalize_title(title: str) -> str:

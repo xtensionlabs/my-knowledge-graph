@@ -43,6 +43,7 @@ from synapse.config import (
 from synapse.context.session import get_session, set_energy
 from synapse.graph.db import get_engine
 from synapse.graph.models import CaptureLog
+from synapse.utils.time import utcnow as _utcnow
 
 DEFAULT_ENERGY: str = "medium"
 _VALID_LEVELS: tuple[str, ...] = ("low", "medium", "high")
@@ -58,10 +59,6 @@ class EnergySignals:
     is_night_hour: bool
     is_weekday: bool
     chosen: str
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
 
 
 def _local_now() -> datetime:

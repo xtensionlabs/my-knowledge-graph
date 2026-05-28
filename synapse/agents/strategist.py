@@ -40,6 +40,7 @@ from synapse.graph.db import get_engine
 from synapse.graph.hebbian import strengthen_edges
 from synapse.graph.models import Node, NodeType
 from synapse.llm.client import ClaudeClient, StructuredOutputError, claude
+from synapse.utils.time import assume_utc as _assume_utc, utcnow as _utcnow
 
 
 # ── Pydantic output schema ───────────────────────────────────────────────────
@@ -83,16 +84,6 @@ class StrategistOutput(BaseModel):
 
 
 # ── Context gathering ────────────────────────────────────────────────────────
-
-
-def _assume_utc(dt: datetime | None) -> datetime | None:
-    if dt is None:
-        return None
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
 
 
 def _parse_event_date(node: Node) -> datetime | None:

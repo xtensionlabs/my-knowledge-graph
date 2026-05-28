@@ -21,6 +21,7 @@ from sqlmodel import Session, asc, select
 from synapse.config import SYNTHESIZER_QUESTION_BANK_MAX
 from synapse.graph.db import get_engine
 from synapse.graph.models import Node, NodeType
+from synapse.utils.time import assume_utc as _assume_utc, utcnow as _utcnow
 
 # SM-2 constants — never edit casually; the algorithm is calibrated on these values.
 EASE_FLOOR: float = 1.3
@@ -40,21 +41,6 @@ class RetentionState:
     last_reviewed: datetime
 
 
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
-
-
-def _assume_utc(dt: datetime | None) -> datetime | None:
-    """Stamp naive datetimes (as returned by SQLite) with UTC tzinfo.
-
-    SQLite + SQLModel do not preserve timezone metadata across writes;
-    everywhere we *write* uses UTC, so attaching UTC on read is correct.
-    """
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
 
 
 def update_retention(

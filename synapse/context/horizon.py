@@ -43,6 +43,7 @@ from synapse.graph.db import get_engine
 from synapse.graph.models import Edge, Node, NodeType
 from synapse.graph.operations import create_edge, create_node, get_node, list_nodes
 from synapse.graph.vault_sync import write_node_file
+from synapse.utils.time import assume_utc as _assume_utc
 
 EVENT_DATE_TAG_PREFIX = "_event_date="
 
@@ -55,13 +56,6 @@ def _encode_event_date(dt: datetime) -> str:
     return f"{EVENT_DATE_TAG_PREFIX}{dt.astimezone(timezone.utc).isoformat()}"
 
 
-def _assume_utc(dt: datetime | None) -> datetime | None:
-    """Same convention as `retention._assume_utc`: stamp naive dt's with UTC."""
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        return dt.replace(tzinfo=timezone.utc)
-    return dt
 
 
 def _extract_event_date(node: Node) -> datetime | None:

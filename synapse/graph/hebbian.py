@@ -18,7 +18,7 @@ Three public APIs:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 
 from loguru import logger
 from sqlmodel import Session, select
@@ -33,15 +33,7 @@ from synapse.config import (
 )
 from synapse.graph.db import get_engine
 from synapse.graph.models import Edge
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
-
-
-def _assume_utc(dt: datetime) -> datetime:
-    """SQLite drops tzinfo on read; stamp naive datetimes as UTC."""
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+from synapse.utils.time import assume_utc as _assume_utc, utcnow as _utcnow
 
 
 @dataclass

@@ -9,7 +9,7 @@ Conventions:
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
 
 from fastapi import APIRouter, Query
@@ -18,7 +18,6 @@ from sqlmodel import Session, desc, func, select
 from synapse.config import (
     COMMUNITIES_HUB_TOP_K,
     COMMUNITIES_MIN_SIZE,
-    SEARCH_DEFAULT_LIMIT,
 )
 from synapse.graph.communities import detect_communities
 from synapse.graph.db import get_engine
@@ -29,12 +28,9 @@ from synapse.graph.operations import (
     compute_centrality,
     graph_stats,
 )
+from synapse.utils.time import utcnow as _utcnow
 
 router = APIRouter()
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
 
 
 @router.get("/overview")

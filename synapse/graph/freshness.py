@@ -14,23 +14,14 @@ ranked lower and surfaced for manual review via `synapse graph cold`.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import Session, select
 
 from synapse.config import FORGETTING_HORIZON_DAYS
 from synapse.graph.db import get_engine
 from synapse.graph.models import Edge, Node
-
-
-def _utcnow() -> datetime:
-    return datetime.now(tz=timezone.utc)
-
-
-def _assume_utc(dt: datetime | None) -> datetime | None:
-    if dt is None:
-        return None
-    return dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt
+from synapse.utils.time import assume_utc as _assume_utc, utcnow as _utcnow
 
 
 def _last_touched_for_node(
