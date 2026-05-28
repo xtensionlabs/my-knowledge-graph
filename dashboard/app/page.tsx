@@ -1,7 +1,8 @@
 import { CheckCircle2, XCircle } from "lucide-react";
-import { GatewayError, getOverview } from "@/lib/api";
+import { GatewayError, getInbox, getOverview } from "@/lib/api";
 import { Card } from "@/components/Card";
 import { GatewayDownBanner } from "@/components/GatewayDownBanner";
+import { InboxPanel } from "@/components/InboxPanel";
 import { NodeBadge } from "@/components/NodeBadge";
 import { Stat } from "@/components/Stat";
 import { ms, relativeTime, usd } from "@/lib/format";
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function OverviewPage() {
   try {
-    const data = await getOverview();
+    const [data, inbox] = await Promise.all([getOverview(), getInbox()]);
     return (
       <div className="px-8 py-8 max-w-[1400px]">
         <PageHeader generatedAt={data.generated_at} />
@@ -59,6 +60,10 @@ export default async function OverviewPage() {
               />
             </div>
           </Card>
+        </div>
+
+        <div className="mb-4">
+          <InboxPanel total={inbox.total} items={inbox.items} />
         </div>
 
         <Card

@@ -138,6 +138,54 @@ async def test_communities_endpoint_returns_shape(client) -> None:  # type: igno
 # ── /dashboard/agents ─────────────────────────────────────────────────────────
 
 
+# ── /dashboard/inbox ──────────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_inbox_endpoint_lists_pending_items(client) -> None:  # type: ignore[no-untyped-def]
+    from synapse.capture.inbox import write_to_inbox
+
+    write_to_inbox(source="manual", content="first capture content")
+    write_to_inbox(source="browser", content="second capture content")
+
+    resp = await client.get("/dashboard/inbox")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["total"] == 2
+    assert len(body["items"]) == 2
+    sources = {it["source"] for it in body["items"]}
+    assert sources == {"manual", "browser"}
+    for item in body["items"]:
+        assert item["filename"].endswith(".md")
+        assert item["size_bytes"] > 0
+
+
+@pytest.mark.asyncio
+async def test_inbox_endpoint_returns_empty_when_inbox_empty(client) -> None:  # type: ignore[no-untyped-def]
+    resp = await client.get("/dashboard/inbox")
+    body = resp.json()
+    assert body == {"total": 0, "items": []}
+
+
+# ── POST /dashboard/librarian/run ────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_trigger_librarian_returns_summary_on_empty_inbox(client) -> None:  # type: ignore[no-untyped-def]
+    """With an empty inbox the librarian returns ok with 'nothing to do' — no LLM call."""
+    resp = await client.post("/dashboard/librarian/run")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["ok"] is True
+    assert "nothing to do" in body["summary"].lower() or "empty" in body["summary"].lower()
+
+
+@pytest.mark.asyncio
+async def test_trigger_librarian_requires_api_key(unauth_client) -> None:  # type: ignore[no-untyped-def]
+    resp = await unauth_client.post("/dashboard/librarian/run")
+    assert resp.status_code == 401
+
+
 @pytest.mark.asyncio
 async def test_agents_endpoint_returns_per_agent_rollup(client) -> None:  # type: ignore[no-untyped-def]
     with Session(get_engine()) as s:

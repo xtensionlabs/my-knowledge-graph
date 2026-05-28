@@ -17,7 +17,7 @@ import json
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Header, HTTPException, Request, status
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 from synapse.capture.email_ingest import parse_email
 from synapse.capture.inbox import InboxWriteError, write_to_inbox
@@ -138,10 +138,25 @@ async def ingest_email(
 
 
 class BrowserIngestPayload(BaseModel):
-    """Schema for `POST /ingest/browser`."""
+    """Schema for `POST /ingest/browser`.
 
-    selected_text: str = Field(min_length=1, max_length=200_000)
-    page_title: str | None = None
+    Accepts either the canonical field names (`selected_text`, `page_title`)
+    OR the browser-extension shorthand (`content`, `title`) so the extension
+    JS doesn't have to translate. Pydantic v2 AliasChoices resolves whichever
+    is present; both can't be sent simultaneously — first match wins.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    selected_text: str = Field(
+        min_length=1,
+        max_length=200_000,
+        validation_alias=AliasChoices("selected_text", "content"),
+    )
+    page_title: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("page_title", "title"),
+    )
     url: str | None = None
 
 

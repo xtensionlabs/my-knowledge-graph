@@ -1,15 +1,15 @@
-"""Dashboard API — read-only endpoints consumed by the M5b Next.js UI.
+"""Dashboard API — endpoints consumed by the M5b Next.js UI.
 
 Conventions:
-    - All responses are JSON with a stable shape (the dashboard is the consumer).
-    - No mutations. The dashboard triggers agent runs via the existing
-      `/agents/*` endpoints; this module is purely read.
+    - Responses are JSON with a stable shape (the dashboard is the consumer).
+    - Mostly read; the only write is POST /librarian/run, which triggers an
+      existing agent rather than mutating the graph directly.
     - Datetimes serialized as ISO-8601 strings (Python `.isoformat()`).
 """
 
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, status
@@ -220,3 +220,76 @@ def dashboard_agents() -> dict[str, Any]:
         })
 
     return {"generated_at": now.isoformat(), "agents": agents_payload}
+
+
+# ── Inbox + librarian trigger ────────────────────────────────────────────────
+
+_FRONTMATTER_SOURCE_PREFIX = "source:"
+
+
+def _parse_source_from_frontmatter(text: str) -> str:
+    """Cheap source extraction from a markdown file's YAML frontmatter.
+
+    Avoids a full YAML parse just to read one field — the inbox files are
+    machine-written with a stable shape.
+    """
+    if not text.startswith("---"):
+        return "unknown"
+    for line in text.splitlines()[1:25]:
+        stripped = line.strip()
+        if stripped == "---":
+            break
+        if stripped.startswith(_FRONTMATTER_SOURCE_PREFIX):
+            return stripped[len(_FRONTMATTER_SOURCE_PREFIX):].strip() or "unknown"
+    return "unknown"
+
+
+@router.get("/inbox")
+def dashboard_inbox(
+    limit: int = Query(50, ge=1, le=500),
+) -> dict[str, Any]:
+    """List pending inbox items (captures not yet processed by the Librarian).
+
+    Items are sorted oldest first so the dashboard can show what's been waiting.
+    """
+    settings = get_settings()
+    inbox_dir = settings.inbox_dir
+    if not inbox_dir.is_dir():
+        return {"total": 0, "items": []}
+
+    files = sorted(
+        (p for p in inbox_dir.glob("*.md") if p.is_file()),
+        key=lambda p: p.stat().st_mtime,
+    )
+    items: list[dict[str, Any]] = []
+    for p in files[:limit]:
+        try:
+            stat = p.stat()
+            text = p.read_text(encoding="utf-8", errors="replace")
+        except OSError:
+            continue
+        items.append({
+            "filename": p.name,
+            "source": _parse_source_from_frontmatter(text),
+            "size_bytes": stat.st_size,
+            "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat(),
+        })
+    return {"total": len(files), "items": items}
+
+
+@router.post("/librarian/run", status_code=status.HTTP_200_OK)
+async def dashboard_trigger_librarian() -> dict[str, Any]:
+    """Synchronously run the Librarian on the current inbox.
+
+    Returns the agent's summary + artifacts so the dashboard can show the
+    result. Bypasses scheduling — the user explicitly asked for this.
+    """
+    from synapse.agents.librarian import librarian
+
+    result = await librarian.run()
+    return {
+        "ok": result.ok,
+        "summary": result.summary,
+        "artifacts": result.artifacts,
+        "errors": result.errors,
+    }

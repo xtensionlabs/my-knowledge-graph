@@ -1,0 +1,71 @@
+/* Wider canvas for the options page; popup.css already provides the palette. */
+body.options {
+  width: auto;
+  max-width: 560px;
+  margin: 32px auto;
+  padding: 24px;
+}
+
+body.options main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+body.options header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+body.options .subtitle {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+
+body.options form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+body.options label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+body.options label > span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-dim);
+}
+
+body.options input {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+body.options input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+body.options small {
+  color: var(--fg-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+body.options small code {
+  font-family: var(--font-mono);
+  color: var(--fg);
+  background: var(--surface);
+  padding: 0 4px;
+}

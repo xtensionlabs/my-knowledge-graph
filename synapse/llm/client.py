@@ -24,7 +24,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, TypeVar
 
-from anthropic import AsyncAnthropic
+from anthropic import (
+    APIStatusError,
+    AsyncAnthropic,
+    AuthenticationError,
+    BadRequestError,
+    PermissionDeniedError,
+)
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 from loguru import logger
 from pydantic import BaseModel, ValidationError
@@ -283,6 +289,18 @@ class ClaudeClient:
                     temperature=temperature,
                     system=system,
                 )
+            except (
+                BadRequestError,
+                AuthenticationError,
+                PermissionDeniedError,
+            ) as exc:
+                # 400 / 401 / 403 are user-correctable, not transient. Retrying
+                # them just wastes time + makes the gateway look hung. Fail fast
+                # and surface the error to the caller.
+                last_error = f"non-retryable: {exc}"
+                last_raw = ""
+                logger.error("claude call non-retryable: {exc}", exc=exc)
+                break
             except Exception as exc:  # noqa: BLE001 — network/transport errors
                 last_error = f"transport: {exc}"
                 last_raw = ""

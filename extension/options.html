@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Synapse — Extension settings</title>
+    <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="options.css" />
+  </head>
+  <body class="options">
+    <main>
+      <header>
+        <h1>Synapse</h1>
+        <span class="subtitle">Extension settings</span>
+      </header>
+
+      <form id="config">
+        <label>
+          <span>Gateway URL</span>
+          <input
+            id="gateway-url"
+            type="url"
+            placeholder="http://127.0.0.1:8000"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <small>
+            Must match the host where the Synapse gateway is running. Default:
+            <code>http://127.0.0.1:8000</code>.
+          </small>
+        </label>
+
+        <label>
+          <span>API key</span>
+          <input
+            id="api-key"
+            type="password"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <small>
+            Same value as <code>SYNAPSE_BROWSER_API_KEY</code> in the project
+            root <code>.env</code>.
+          </small>
+        </label>
+
+        <div class="row">
+          <button id="save" type="submit" class="primary">Save</button>
+          <button id="test" type="button">Test connection</button>
+        </div>
+
+        <p id="status" class="status" aria-live="polite"></p>
+      </form>
+    </main>
+
+    <script type="module" src="options.js"></script>
+  </body>
+</html>

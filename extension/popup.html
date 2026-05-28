@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Synapse</h1>
+      <button id="open-options" type="button" title="Open settings" aria-label="Settings">
+        ⚙
+      </button>
+    </header>
+
+    <main>
+      <textarea
+        id="content"
+        rows="6"
+        placeholder="Capture a thought, paste a quote, drop a link…"
+        autofocus
+      ></textarea>
+
+      <div class="row">
+        <button id="save" type="button" class="primary">Save to inbox</button>
+        <button id="save-page" type="button">Save current page</button>
+      </div>
+
+      <p id="status" class="status" aria-live="polite"></p>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>

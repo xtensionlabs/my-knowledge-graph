@@ -114,6 +114,26 @@ async def test_ingest_browser_accepts_valid_key(fastapi_app) -> None:  # type: i
 
 
 @pytest.mark.asyncio
+async def test_ingest_browser_accepts_extension_field_names(fastapi_app) -> None:  # type: ignore[no-untyped-def]
+    """The browser extension sends `content` + `title` (its own naming).
+    The endpoint must accept these as aliases for `selected_text` + `page_title`.
+    """
+    key = get_settings().synapse_browser_api_key
+    async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://t") as c:
+        resp = await c.post(
+            "/ingest/browser",
+            json={
+                "content": "a paragraph the extension scraped",
+                "title": "Page from the extension",
+                "url": "https://example.com/y",
+            },
+            headers={BROWSER_API_KEY_HEADER: key},
+        )
+    assert resp.status_code == 201, resp.text
+    assert count_inbox_items() == 1
+
+
+@pytest.mark.asyncio
 async def test_ingest_git_creates_capture(fastapi_app) -> None:  # type: ignore[no-untyped-def]
     async with AsyncClient(transport=ASGITransport(app=fastapi_app), base_url="http://t") as c:
         resp = await c.post(
