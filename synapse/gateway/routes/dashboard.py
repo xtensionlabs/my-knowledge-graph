@@ -9,6 +9,7 @@ Conventions:
 
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -292,4 +293,173 @@ async def dashboard_trigger_librarian() -> dict[str, Any]:
         "summary": result.summary,
         "artifacts": result.artifacts,
         "errors": result.errors,
+    }
+
+
+# ── Node detail (powers the click-a-node drawer in the dashboard) ───────────
+
+
+def _content_excerpt(content: str, max_chars: int = 600) -> str:
+    """Trim a node's markdown body to a UI-friendly preview."""
+    body = (content or "").strip()
+    if len(body) <= max_chars:
+        return body
+    cut = body[:max_chars]
+    # Try to end at a paragraph break for readability.
+    last_para = cut.rfind("\n\n")
+    if last_para > max_chars * 0.6:
+        cut = cut[:last_para]
+    return cut.rstrip() + "\n\n…"
+
+
+def _parse_github_link_from_tags(tags_json: str) -> dict[str, str] | None:
+    """If the node was created from a GitHub issue, extract the link metadata.
+
+    Tags look like `github:owner/repo`; content's first line includes the
+    full issue URL we wrote in `sync_issues_to_questions`. Best effort —
+    returns None when nothing useful is present.
+    """
+    try:
+        tags = json.loads(tags_json or "[]")
+    except json.JSONDecodeError:
+        return None
+    for t in tags:
+        if isinstance(t, str) and t.startswith("github:"):
+            return {"repo": t.removeprefix("github:")}
+    return None
+
+
+@router.get("/node/{node_id}")
+def dashboard_node_detail(node_id: str) -> dict[str, Any]:
+    """Return a single node + its 1-hop neighborhood + type-specific metadata.
+
+    Powers the dashboard's click-a-node side panel. Always returns the same
+    shape regardless of node type — type-specific fields appear under
+    `metadata` and are populated only when applicable (SM-2 state for
+    CONCEPT, event_date for EVENT, etc.).
+    """
+    import json as _json
+
+    with Session(get_engine()) as session:
+        node = session.get(Node, node_id)
+        if node is None:
+            raise HTTPException(status_code=404, detail=f"node not found: {node_id}")
+
+        # 1-hop neighbors — both incoming and outgoing edges.
+        out_edges = list(session.exec(
+            select(Edge).where(Edge.source_node_id == node_id)
+        ).all())
+        in_edges = list(session.exec(
+            select(Edge).where(Edge.target_node_id == node_id)
+        ).all())
+
+        neighbor_ids: set[str] = set()
+        for e in out_edges:
+            neighbor_ids.add(e.target_node_id)
+        for e in in_edges:
+            neighbor_ids.add(e.source_node_id)
+
+        neighbors_by_id: dict[str, Node] = {}
+        if neighbor_ids:
+            rows = session.exec(
+                select(Node).where(Node.id.in_(neighbor_ids))  # type: ignore[attr-defined]
+            ).all()
+            neighbors_by_id = {n.id: n for n in rows}
+
+    # Type-specific metadata
+    metadata: dict[str, Any] = {}
+    centrality_lookup = compute_centrality(build_networkx_graph())
+    freshness_lookup = compute_freshness_map()
+    metadata["centrality"] = float(centrality_lookup.get(node.id, 0.0))
+    metadata["freshness"] = float(freshness_lookup.get(node.id, 1.0))
+
+    node_type_value = node.type.value if hasattr(node.type, "value") else str(node.type)
+
+    if node_type_value == "CONCEPT" and node.next_review is not None:
+        nr = node.next_review
+        if nr.tzinfo is None:
+            nr = nr.replace(tzinfo=timezone.utc)
+        last = node.last_reviewed
+        if last is not None and last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        metadata["sm2"] = {
+            "next_review": nr.isoformat(),
+            "last_reviewed": last.isoformat() if last else None,
+            "interval_days": float(node.interval_days or 0.0),
+            "ease_factor": float(node.ease_factor or 0.0),
+            "review_count": int(node.review_count or 0),
+            "overdue": nr < _utcnow(),
+        }
+
+    if node_type_value == "EVENT":
+        # Event date is encoded in tags JSON as `_event_date=ISO` (PRD §M2 deferred fix).
+        try:
+            tags = _json.loads(node.tags or "[]")
+        except _json.JSONDecodeError:
+            tags = []
+        for t in tags:
+            if isinstance(t, str) and t.startswith("_event_date="):
+                metadata["event_date"] = t[len("_event_date="):]
+                break
+
+    gh = _parse_github_link_from_tags(node.tags)
+    if gh is not None:
+        # Content first line was "**Source:** [owner/repo#N](URL)" — extract the URL.
+        first_line = (node.content or "").split("\n", 1)[0]
+        url_start = first_line.find("(")
+        url_end = first_line.find(")", url_start)
+        if 0 <= url_start < url_end:
+            gh["url"] = first_line[url_start + 1 : url_end]
+        metadata["github"] = gh
+
+    # Neighbor payload — direction + relation tell the user which way the edge runs.
+    neighbor_payload: list[dict[str, Any]] = []
+    for e in out_edges:
+        n = neighbors_by_id.get(e.target_node_id)
+        if n is None:
+            continue
+        neighbor_payload.append({
+            "node_id": n.id,
+            "title": n.title,
+            "type": n.type.value if hasattr(n.type, "value") else str(n.type),
+            "direction": "out",
+            "relation": e.relation_type,
+            "weight": float(e.weight),
+        })
+    for e in in_edges:
+        n = neighbors_by_id.get(e.source_node_id)
+        if n is None:
+            continue
+        neighbor_payload.append({
+            "node_id": n.id,
+            "title": n.title,
+            "type": n.type.value if hasattr(n.type, "value") else str(n.type),
+            "direction": "in",
+            "relation": e.relation_type,
+            "weight": float(e.weight),
+        })
+    # Sort neighbors by edge weight desc so the strongest connections lead the UI.
+    neighbor_payload.sort(key=lambda x: x["weight"], reverse=True)
+
+    return {
+        "node": {
+            "id": node.id,
+            "type": node_type_value,
+            "title": node.title,
+            "content_excerpt": _content_excerpt(node.content),
+            "tags": _json.loads(node.tags or "[]"),
+            "needs_review": bool(node.needs_review),
+            "created_at": (
+                node.created_at.replace(tzinfo=timezone.utc).isoformat()
+                if node.created_at and node.created_at.tzinfo is None
+                else (node.created_at.isoformat() if node.created_at else None)
+            ),
+            "updated_at": (
+                node.updated_at.replace(tzinfo=timezone.utc).isoformat()
+                if node.updated_at and node.updated_at.tzinfo is None
+                else (node.updated_at.isoformat() if node.updated_at else None)
+            ),
+        },
+        "neighbors": neighbor_payload,
+        "metadata": metadata,
     }

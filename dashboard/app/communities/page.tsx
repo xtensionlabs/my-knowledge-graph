@@ -8,15 +8,17 @@ export default async function CommunitiesPage() {
   try {
     const data = await getCommunities();
     return (
-      <div className="px-8 py-8 max-w-[1400px]">
-        <header className="mb-8">
-          <h1 className="text-2xl font-semibold tracking-tight">Communities</h1>
-          <p className="text-sm text-fg-muted mt-1">
+      <div className="px-4 py-5 md:px-8 md:py-8 max-w-[1400px] mx-auto">
+        <header className="mb-6 md:mb-8">
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">
+            Communities
+          </h1>
+          <p className="text-xs md:text-sm text-fg-muted mt-1">
             Louvain clusters in your graph. Hub concepts are the highest-degree
             nodes within each cluster — the load-bearing ideas your thinking
             actually orbits.
           </p>
-          <p className="mono text-xs text-fg-dim mt-2">
+          <p className="mono text-[10px] md:text-xs text-fg-dim mt-2">
             {data.communities.length} communities · min size {data.min_size} ·
             top {data.hub_top_k} hubs each
           </p>
@@ -30,7 +32,7 @@ export default async function CommunitiesPage() {
             </p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
             {data.communities.map((c) => (
               <Card
                 key={c.index}
@@ -58,8 +60,8 @@ export default async function CommunitiesPage() {
     );
   } catch (err) {
     return (
-      <div className="px-8 py-8 max-w-[1400px]">
-        <h1 className="text-2xl font-semibold tracking-tight mb-6">
+      <div className="px-4 py-5 md:px-8 md:py-8 max-w-[1400px] mx-auto">
+        <h1 className="text-xl md:text-2xl font-semibold tracking-tight mb-6">
           Communities
         </h1>
         <GatewayDownBanner error={err} />

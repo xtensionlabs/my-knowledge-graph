@@ -186,6 +186,95 @@ async def test_trigger_librarian_requires_api_key(unauth_client) -> None:  # typ
     assert resp.status_code == 401
 
 
+# ── /dashboard/node/{id} ──────────────────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_node_detail_returns_node_and_neighbors(client) -> None:  # type: ignore[no-untyped-def]
+    a = operations.create_node(type=NodeType.CONCEPT, title="A")
+    b = operations.create_node(type=NodeType.CONCEPT, title="B")
+    c = operations.create_node(type=NodeType.CONCEPT, title="C")
+    operations.create_edge(source_node_id=a.id, target_node_id=b.id, relation_type="applies_to", weight=2.0)
+    operations.create_edge(source_node_id=c.id, target_node_id=a.id, relation_type="requires", weight=1.0)
+
+    resp = await client.get(f"/dashboard/node/{a.id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["node"]["id"] == a.id
+    assert body["node"]["type"] == "CONCEPT"
+    titles = sorted([n["title"] for n in body["neighbors"]])
+    assert titles == ["B", "C"]
+    # The B edge has weight 2.0 > C edge's 1.0 — strongest connection sorts first.
+    assert body["neighbors"][0]["title"] == "B"
+    assert body["neighbors"][0]["direction"] == "out"
+    assert body["neighbors"][1]["direction"] == "in"
+
+
+@pytest.mark.asyncio
+async def test_node_detail_404_on_missing(client) -> None:  # type: ignore[no-untyped-def]
+    resp = await client.get("/dashboard/node/nonexistent-id")
+    assert resp.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_node_detail_includes_sm2_for_concept(client) -> None:  # type: ignore[no-untyped-def]
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    from sqlmodel import Session
+    from synapse.graph.db import get_engine
+    from synapse.graph.models import Node
+
+    n = operations.create_node(type=NodeType.CONCEPT, title="With-SM2")
+    with Session(get_engine()) as s:
+        row = s.get(Node, n.id)
+        assert row is not None
+        row.next_review = _dt.now(tz=_tz.utc) - _td(hours=2)  # overdue
+        row.interval_days = 3.0
+        row.ease_factor = 2.5
+        row.review_count = 5
+        s.add(row)
+        s.commit()
+
+    resp = await client.get(f"/dashboard/node/{n.id}")
+    body = resp.json()
+    assert "sm2" in body["metadata"]
+    assert body["metadata"]["sm2"]["overdue"] is True
+    assert body["metadata"]["sm2"]["interval_days"] == 3.0
+    assert body["metadata"]["sm2"]["review_count"] == 5
+
+
+@pytest.mark.asyncio
+async def test_node_detail_includes_event_date(client) -> None:  # type: ignore[no-untyped-def]
+    from datetime import datetime as _dt, timedelta as _td, timezone as _tz
+    from synapse.context.horizon import add_event
+
+    when = _dt.now(tz=_tz.utc) + _td(days=2)
+    ev = add_event(title="CAT exam", date=when)
+    resp = await client.get(f"/dashboard/node/{ev.id}")
+    body = resp.json()
+    assert "event_date" in body["metadata"]
+
+
+@pytest.mark.asyncio
+async def test_node_detail_includes_github_link(client) -> None:  # type: ignore[no-untyped-def]
+    n = operations.create_node(
+        type=NodeType.QUESTION,
+        title="Investigate flaky test",
+        content="**Source:** [xtensionlabs/synapse#42](https://github.com/xtensionlabs/synapse/issues/42)\n\nDetails",
+        tags=["github:xtensionlabs/synapse"],
+    )
+    resp = await client.get(f"/dashboard/node/{n.id}")
+    body = resp.json()
+    assert "github" in body["metadata"]
+    assert body["metadata"]["github"]["repo"] == "xtensionlabs/synapse"
+    assert body["metadata"]["github"]["url"] == "https://github.com/xtensionlabs/synapse/issues/42"
+
+
+@pytest.mark.asyncio
+async def test_node_detail_requires_api_key(unauth_client) -> None:  # type: ignore[no-untyped-def]
+    resp = await unauth_client.get("/dashboard/node/any-id")
+    assert resp.status_code == 401
+
+
 @pytest.mark.asyncio
 async def test_agents_endpoint_returns_per_agent_rollup(client) -> None:  # type: ignore[no-untyped-def]
     with Session(get_engine()) as s:
