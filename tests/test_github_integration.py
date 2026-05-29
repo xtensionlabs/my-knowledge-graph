@@ -42,10 +42,13 @@ def _stub_embeddings():  # type: ignore[no-untyped-def]
 
 
 def _mock_response(payload: Any, status: int = 200) -> MagicMock:
-    """Build a MagicMock httpx.Response with the given JSON payload + status."""
+    """Build a MagicMock httpx.Response with the given JSON payload + status.
+
+    httpx.Response has no `.ok` attribute (that's the `requests` library) —
+    production code checks `status_code` instead, so we don't set `.ok` here.
+    """
     r = MagicMock(spec=httpx.Response)
     r.status_code = status
-    r.ok = 200 <= status < 300
     r.json = lambda: payload
     r.text = str(payload)
     return r

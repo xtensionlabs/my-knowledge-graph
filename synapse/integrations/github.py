@@ -70,7 +70,7 @@ def get_authenticated_user(
         resp = client.get(f"{GITHUB_API_BASE_URL}/user", headers=_headers(token))
         if resp.status_code == 401:
             raise AuthError("github token rejected — re-run `synapse auth github start`")
-        if not resp.ok:
+        if resp.status_code >= 400:
             raise GithubError(f"GET /user failed: {resp.status_code} {resp.text[:200]}")
         return resp.json()
     finally:
@@ -101,7 +101,7 @@ def list_open_issues_assigned_to_me(
         )
         if resp.status_code == 401:
             raise AuthError("github token rejected — re-run `synapse auth github start`")
-        if not resp.ok:
+        if resp.status_code >= 400:
             raise GithubError(f"GET /issues failed: {resp.status_code} {resp.text[:200]}")
         items = resp.json()
     finally:
