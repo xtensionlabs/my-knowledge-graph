@@ -139,7 +139,6 @@ Upgrade: CLIP (`open_clip` library) gives a shared text↔image embedding space.
 
 **When to do this:** when you regularly capture diagrams + photos that aren't well-served by OCR-to-text. Requires re-embedding the graph in a new space.
 
-**Honest assessment:** this is a research-grade upgrade. Real benefit, real complexity. Probably Y2.
 
 #### 3.5 Replace ChromaDB with Qdrant or LanceDB
 
@@ -261,7 +260,6 @@ These are the temptations to refuse:
 - **Building our own knowledge graph from scratch.** Wikidata exists. Anything we'd build would be worse and unmaintained.
 - **Writing data back to Wikidata or DBPedia.** We're a consumer. Round-tripping our personal notes upstream is out of scope (and probably wrong — they're not encyclopedic).
 - **Replacing ChromaDB without a measured reason.** It works. Until it doesn't.
-- **Multimodal-first.** Text + structured graph is where the value lives at our scale. Multi-modal is Y2.
 - **Real-time agent SPARQL queries during user interaction.** SPARQL is slow. Agents query in batch during scheduled runs, never in the user's hot path.
 - **A "universal knowledge graph" pitch.** Synapse is a *personal* cognitive OS. The External layer makes it smarter, not generic.
 
