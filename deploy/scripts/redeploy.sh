@@ -72,6 +72,22 @@ fi
 
 # ── 3. dashboard ─────────────────────────────────────────────────────────────
 if dashboard_changed; then
+  step "sync dashboard .env.local with gateway .env"
+  # Auto-mirror SYNAPSE_BROWSER_API_KEY → SYNAPSE_API_KEY so the dashboard's
+  # server-side fetch never 401s after a key rotation. SYNAPSE_GATEWAY_URL
+  # stays at localhost since both services run on the same machine.
+  ENVL="$REPO_DIR/dashboard/.env.local"
+  KEY=$(grep '^SYNAPSE_BROWSER_API_KEY=' "$REPO_DIR/.env" | cut -d= -f2- || true)
+  if [[ -z "$KEY" ]]; then
+    echo "  ⚠ SYNAPSE_BROWSER_API_KEY missing from $REPO_DIR/.env — dashboard will 401"
+  fi
+  cat > "$ENVL" <<EOF
+SYNAPSE_GATEWAY_URL=http://127.0.0.1:8000
+SYNAPSE_API_KEY=$KEY
+EOF
+  chown "$SVC_USER:$SVC_USER" "$ENVL"
+  chmod 600 "$ENVL"
+
   step "npm install + build"
   sudo -u "$SVC_USER" -H bash -lc "
     cd $REPO_DIR/dashboard
