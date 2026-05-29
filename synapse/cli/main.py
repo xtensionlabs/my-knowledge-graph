@@ -1015,6 +1015,82 @@ def auth_google_sync_cmd(
     console.print(f"[green]✓ imported {n} event(s) from Google Calendar[/green]")
 
 
+# ── GitHub OAuth (mirrors the google_app pattern above) ─────────────────────
+
+github_app = typer.Typer(help="GitHub OAuth.", no_args_is_help=True)
+auth_app.add_typer(github_app, name="github")
+
+
+@github_app.command("start")
+def auth_github_start_cmd() -> None:
+    """Print the GitHub authorize URL (open it in a browser to authorize)."""
+    from synapse.gateway.auth import AuthError, start_github_authorization
+
+    try:
+        result = start_github_authorization()
+    except AuthError as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print("[bold]Open this URL in a browser to authorize:[/bold]\n")
+    console.print(result.authorize_url)
+    console.print(
+        "\n[dim]After authorizing, GitHub redirects to the gateway callback "
+        "(must be reachable at the URL you registered with the OAuth App) which "
+        "stores the encrypted token.[/dim]"
+    )
+
+
+@github_app.command("status")
+def auth_github_status_cmd() -> None:
+    """Show whether GitHub credentials are stored."""
+    from synapse.gateway.auth import credential_status
+
+    status = credential_status("github")
+    if not status.get("configured"):
+        console.print("[yellow]github: not connected[/yellow]")
+        console.print("[dim]  run `synapse auth github start` to begin OAuth[/dim]")
+        return
+    console.print("[green]github: connected[/green]")
+    console.print(f"  scopes: {', '.join(status['scopes'])}")
+    console.print("[dim]  (GitHub OAuth tokens don't expire)[/dim]")
+
+
+@github_app.command("sync")
+def auth_github_sync_cmd(
+    limit: Annotated[int, typer.Option("--limit", "-n", help="Max issues to fetch.")] = 50,
+) -> None:
+    """Import open GitHub issues assigned to you as QUESTION nodes (PRs are skipped)."""
+    from synapse.gateway.auth import AuthError
+    from synapse.integrations.github import GithubError, sync_issues_to_questions
+
+    configure_logging(component="cli")
+    try:
+        n = sync_issues_to_questions(limit=limit)
+    except (AuthError, GithubError) as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]✓ created {n} QUESTION node(s) from GitHub issues[/green]")
+
+
+@github_app.command("whoami")
+def auth_github_whoami_cmd() -> None:
+    """Connection test — print the authenticated GitHub user's login."""
+    from synapse.gateway.auth import AuthError
+    from synapse.integrations.github import GithubError, get_authenticated_user
+
+    configure_logging(component="cli")
+    try:
+        user = get_authenticated_user()
+    except (AuthError, GithubError) as exc:
+        console.print(f"[red]✗ {exc}[/red]")
+        raise typer.Exit(1) from exc
+    console.print(f"[green]✓ authenticated as[/green] [bold]{user.get('login', '?')}[/bold]")
+    if user.get("name"):
+        console.print(f"  name: {user['name']}")
+    if user.get("html_url"):
+        console.print(f"  url: {user['html_url']}")
+
+
 @app.command()
 def logs(
     component: Annotated[str, typer.Argument(help="gateway | clipboard | cli")] = "gateway",

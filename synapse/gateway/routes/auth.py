@@ -20,8 +20,10 @@ from fastapi.responses import HTMLResponse
 from synapse.gateway.auth import (
     AuthError,
     complete_authorization,
+    complete_github_authorization,
     credential_status,
     start_authorization,
+    start_github_authorization,
 )
 
 router = APIRouter()
@@ -59,6 +61,35 @@ def auth_google_callback(
         "<!doctype html><html><head><title>Synapse — connected</title></head>"
         "<body style='font-family:monospace;padding:2em'>"
         "<h2>✓ Google Calendar connected to Synapse</h2>"
+        "<p>You can close this tab.</p></body></html>"
+    )
+
+
+@router.get("/github/start")
+def auth_github_start() -> dict[str, Any]:
+    """Generate the GitHub OAuth authorize URL."""
+    try:
+        result = start_github_authorization()
+    except AuthError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    return {"authorize_url": result.authorize_url, "state": result.state}
+
+
+@router.get("/github/callback", response_class=HTMLResponse)
+def auth_github_callback(
+    code: str = Query(..., description="Authorization code from GitHub"),
+    state: str = Query(..., description="CSRF state echoed by GitHub"),
+) -> str:
+    """GitHub redirects here after the user grants access."""
+    try:
+        complete_github_authorization(code=code, state=state)
+    except AuthError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return (
+        "<!doctype html><html><head><title>Synapse — connected</title></head>"
+        "<body style='font-family:monospace;padding:2em'>"
+        "<h2>✓ GitHub connected to Synapse</h2>"
         "<p>You can close this tab.</p></body></html>"
     )
 

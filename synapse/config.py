@@ -236,11 +236,21 @@ GOOGLE_OAUTH_SCOPES: tuple[str, ...] = (
 GOOGLE_CALENDAR_EVENTS_URL: str = "https://www.googleapis.com/calendar/v3/calendars/primary/events"
 OAUTH_TOKEN_REFRESH_LEEWAY_SECONDS: int = 60   # refresh tokens this many seconds before expiry
 
+# ── GitHub OAuth (M6.5) ─────────────────────────────────────────────────────
+# GitHub OAuth Apps issue non-expiring access tokens (no refresh flow). The
+# `repo` scope is intentional: we read assigned issues across both public and
+# private repos. Tighten to `public_repo` if you only want public visibility.
+GITHUB_OAUTH_AUTHORIZE_URL: str = "https://github.com/login/oauth/authorize"
+GITHUB_OAUTH_TOKEN_URL: str = "https://github.com/login/oauth/access_token"
+GITHUB_OAUTH_REDIRECT_PATH: str = "/auth/github/callback"
+GITHUB_OAUTH_SCOPES: tuple[str, ...] = ("repo", "read:user")
+GITHUB_API_BASE_URL: str = "https://api.github.com"
+
 # ── M3: Git ingest + manifest ────────────────────────────────────────────────
 SYNAPSE_MANIFEST_FILENAME: str = "synapse.json"
 GIT_HOOK_SCRIPT_NAME: str = "post-commit"
 # Default gateway URL embedded in the hook script; overridable via `--gateway`.
-GIT_HOOK_DEFAULT_GATEWAY: str = "http://127.0.0.1:8000"
+GIT_HOOK_DEFAULT_GATEWAY: str = "https://synapse.xtensionlabs.com"
 
 # ── Vault subdirectories (created by `synapse init`) ─────────────────────────
 VAULT_SUBDIRS: tuple[str, ...] = (
@@ -302,6 +312,11 @@ class Settings(BaseSettings):
     synapse_gateway_host: str = "127.0.0.1"
     synapse_gateway_port: int = 8000
     synapse_log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+
+    # Public-facing URL — used to construct OAuth callback URIs that providers
+    # (Google, GitHub) must be able to reach. Leave blank for local dev; on the
+    # VPS set to e.g. https://synapse.xtensionlabs.com (no trailing slash).
+    synapse_public_url: str = ""
 
     # LLM (used from M1 onward)
     anthropic_api_key: str = ""

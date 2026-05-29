@@ -30,6 +30,10 @@ from sqlmodel import Session, select
 
 from synapse.config import (
     ANTHROPIC_CONNECT_TIMEOUT_SECONDS,
+    GITHUB_OAUTH_AUTHORIZE_URL,
+    GITHUB_OAUTH_REDIRECT_PATH,
+    GITHUB_OAUTH_SCOPES,
+    GITHUB_OAUTH_TOKEN_URL,
     GOOGLE_OAUTH_AUTHORIZE_URL,
     GOOGLE_OAUTH_REDIRECT_PATH,
     GOOGLE_OAUTH_SCOPES,
@@ -87,12 +91,20 @@ class AuthorizationStart:
     state: str
 
 
-def _redirect_uri() -> str:
-    """Construct the gateway-side redirect URI for OAuth callbacks."""
+def _redirect_uri(path: str = GOOGLE_OAUTH_REDIRECT_PATH) -> str:
+    """Construct the gateway-side redirect URI for OAuth callbacks.
+
+    Uses SYNAPSE_PUBLIC_URL if set (production VPS), else falls back to
+    host:port (local development). OAuth providers (Google, GitHub) must be
+    configured with the resulting URI as an authorized redirect target.
+    """
     settings = get_settings()
+    if settings.synapse_public_url:
+        base = settings.synapse_public_url.rstrip("/")
+        return f"{base}{path}"
     return (
         f"http://{settings.synapse_gateway_host}:{settings.synapse_gateway_port}"
-        f"{GOOGLE_OAUTH_REDIRECT_PATH}"
+        f"{path}"
     )
 
 
@@ -348,3 +360,132 @@ def credential_status(service: str) -> dict[str, Any]:
         "has_refresh_token": bool(cred.refresh_token),
         "scopes": json.loads(cred.scopes or "[]"),
     }
+
+
+# ── GitHub flow ─────────────────────────────────────────────────────────────
+# Mostly parallel to the Google flow above; written out explicitly rather than
+# generalised because there are only two providers and the GitHub specifics
+# (no refresh tokens, JSON body for code exchange, different scope serialisation)
+# would muddy any "ProviderConfig" abstraction more than it would save.
+
+
+def start_github_authorization() -> AuthorizationStart:
+    """Build the GitHub OAuth authorize URL the user must visit in a browser."""
+    settings = get_settings()
+    if not settings.github_client_id:
+        raise AuthError(
+            "GITHUB_CLIENT_ID is unset; configure it in .env before starting OAuth"
+        )
+
+    state = secrets.token_urlsafe(24)
+    params = {
+        "client_id": settings.github_client_id,
+        "redirect_uri": _redirect_uri(GITHUB_OAUTH_REDIRECT_PATH),
+        "scope": " ".join(GITHUB_OAUTH_SCOPES),
+        "state": state,
+    }
+    url = f"{GITHUB_OAUTH_AUTHORIZE_URL}?{urlencode(params)}"
+
+    with Session(get_engine()) as session:
+        row = Credential(
+            id=str(uuid.uuid4()),
+            service="oauth_state:github",
+            access_token=_encrypt(state),
+            refresh_token="",
+            expires_at=datetime.now(tz=timezone.utc) + timedelta(minutes=10),
+            scopes=json.dumps(list(GITHUB_OAUTH_SCOPES)),
+        )
+        session.add(row)
+        session.commit()
+
+    return AuthorizationStart(authorize_url=url, state=state)
+
+
+def _exchange_github_code(
+    code: str, *, http_client: httpx.Client | None = None,
+) -> dict[str, Any]:
+    """Exchange an authorization code for a GitHub access token.
+
+    GitHub returns form-encoded by default; we ask for JSON explicitly via the
+    Accept header. There is no refresh_token in a standard OAuth App response.
+    """
+    settings = get_settings()
+    payload = {
+        "code": code,
+        "client_id": settings.github_client_id,
+        "client_secret": settings.github_client_secret,
+        "redirect_uri": _redirect_uri(GITHUB_OAUTH_REDIRECT_PATH),
+    }
+    client = http_client or httpx.Client(timeout=ANTHROPIC_CONNECT_TIMEOUT_SECONDS)
+    try:
+        resp = client.post(
+            GITHUB_OAUTH_TOKEN_URL,
+            json=payload,
+            headers={"Accept": "application/json"},
+        )
+        if resp.status_code >= 400:
+            raise AuthError(
+                f"github token exchange failed: {resp.status_code} {resp.text[:200]}"
+            )
+        data = resp.json()
+        # GitHub returns 200 OK even on errors — the body has {"error": "..."}
+        if data.get("error"):
+            raise AuthError(
+                f"github token exchange: {data.get('error')} — "
+                f"{data.get('error_description', '')}"
+            )
+        return data
+    finally:
+        if http_client is None:
+            client.close()
+
+
+def complete_github_authorization(
+    *,
+    code: str,
+    state: str,
+    http_client: httpx.Client | None = None,
+) -> Credential:
+    """Finalise GitHub OAuth: verify state, exchange code, store encrypted token."""
+    _verify_state("github", state)
+    token_payload = _exchange_github_code(code, http_client=http_client)
+
+    access_token = token_payload.get("access_token")
+    if not access_token:
+        raise AuthError("github token exchange returned no access_token")
+
+    # GitHub returns scopes as a comma-separated string (e.g., "repo,read:user").
+    scope_raw = token_payload.get("scope", "")
+    scopes = [s.strip() for s in scope_raw.split(",") if s.strip()] or list(GITHUB_OAUTH_SCOPES)
+
+    # Standard GitHub OAuth tokens don't expire. Store with a far-future expiry
+    # so `get_access_token`'s refresh-leeway check never triggers.
+    far_future = datetime.now(tz=timezone.utc) + timedelta(days=365 * 10)
+
+    with Session(get_engine()) as session:
+        existing = session.exec(
+            select(Credential).where(Credential.service == "github")
+        ).first()
+        if existing is not None:
+            existing.access_token = _encrypt(access_token)
+            existing.refresh_token = ""
+            existing.expires_at = far_future
+            existing.scopes = json.dumps(scopes)
+            existing.updated_at = datetime.now(tz=timezone.utc)
+            session.add(existing)
+            session.commit()
+            session.refresh(existing)
+            return existing
+
+        row = Credential(
+            id=str(uuid.uuid4()),
+            service="github",
+            access_token=_encrypt(access_token),
+            refresh_token="",
+            expires_at=far_future,
+            scopes=json.dumps(scopes),
+        )
+        session.add(row)
+        session.commit()
+        session.refresh(row)
+        return row

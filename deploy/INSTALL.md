@@ -186,13 +186,31 @@ See [MIGRATE.md](MIGRATE.md) — rsync your Windows vault to `/opt/synapse-vault
 
 | Task | Command |
 |---|---|
-| Tail logs | `journalctl -u synapse-gateway -f` |
-| Restart Synapse | `systemctl restart synapse-gateway` |
-| Pull new code | `sudo -u synapse git -C /opt/synapse pull && sudo -u synapse /home/synapse/.local/bin/uv sync --cwd /opt/synapse && systemctl restart synapse-gateway` |
+| **Redeploy after `git push`** | `bash /opt/synapse/deploy/scripts/redeploy.sh` — auto-detects backend vs dashboard changes |
+| Redeploy backend only | `bash /opt/synapse/deploy/scripts/redeploy.sh gateway` |
+| Redeploy dashboard only | `bash /opt/synapse/deploy/scripts/redeploy.sh dashboard` |
+| Tail backend logs | `journalctl -u synapse-gateway -f` |
+| Tail dashboard logs | `journalctl -u synapse-dashboard -f` |
+| Tail tunnel logs | `journalctl -u cloudflared -f` |
+| Restart everything | `systemctl restart synapse-gateway synapse-dashboard cloudflared` |
 | Manual backup | `systemctl start synapse-backup.service` |
 | Restore from backup | `sudo bash /opt/synapse/deploy/scripts/restore.sh /var/backups/synapse/synapse-<TS>.tar.gz` |
 | List timers | `systemctl list-timers` |
 | Check disk usage | `df -h /opt` and `du -sh /opt/synapse-vault` |
+
+### Iteration loop from your laptop
+
+After the first deploy, your day-to-day workflow is:
+
+```bash
+# On your laptop, after editing dashboard or synapse code:
+git push
+
+# One-liner that updates the VPS without an interactive SSH session:
+ssh root@<DROPLET_IP> 'bash /opt/synapse/deploy/scripts/redeploy.sh'
+```
+
+The script is incremental — if you only touched the dashboard, the backend doesn't restart. Typical end-to-end push-to-live time is ~30 seconds for backend-only changes, ~90 seconds when the dashboard needs to rebuild.
 
 ## Cost reality check
 
